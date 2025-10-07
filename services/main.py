@@ -9,14 +9,19 @@ from typing import Dict, List, Literal, Optional, Union
 import tempfile
 import os
 import uuid
+import asyncio
+from threading import Lock
 
 from owlapy.owl_ontology import Ontology
 from rdflib import BNode, URIRef, Literal
 
 app = FastAPI(title="Ontology Upload API")
 
-# In-memory store: maps an ID (string) -> Ontology instance
-ONTOLOGY_STORE: Dict[str, Ontology] = {}
+# In-memory store: maps an ID (string) -> (Ontology instance, filename)
+ONTOLOGY_STORE: Dict[str, tuple[Ontology, str]] = {}
+
+# Thread locks for each ontology to prevent concurrent access
+ONTOLOGY_LOCKS: Dict[str, Lock] = {}
 
 
 # ---------- Models ----------
@@ -37,6 +42,15 @@ class SummaryResponse(BaseModel):
     ontology_iri: Optional[str] = None
     summary: Dict[str, int]
 
+class OntologyInfo(BaseModel):
+    id: str
+    filename: str
+    ontology_iri: Optional[str] = None
+    summary: Dict[str, Union[int, str]]  # includes both counts and namespace
+
+class SummaryAllResponse(BaseModel):
+    summary: List[OntologyInfo]
+
 class TripleJSON(BaseModel):
     s: str
     p: str
@@ -47,13 +61,32 @@ class TriplesResponse(BaseModel):
     total: Optional[int] = None
     triples: List[TripleJSON]
 
-def _ontology_summary(ont: Ontology) -> Dict[str, int]:
+def _get_ontology_iri(ont: Ontology) -> Optional[str]:
+    """
+    Extracts the ontology IRI from an Ontology instance.
+    Returns the IRI as a string, or None if it cannot be extracted.
+    """
+    try:
+        ontology_iri = ont.get_ontology_id().get_ontology_iri().as_str()
+        return ontology_iri
+    except Exception:
+        pass
+    return None
 
+def _ontology_summary(ont: Ontology) -> Dict[str, int]:
+    """Returns just the numeric counts for an ontology."""
     classes = sum(1 for _ in ont.classes_in_signature())
     obj_props = sum(1 for _ in ont.object_properties_in_signature())
     data_props = sum(1 for _ in ont.data_properties_in_signature())
     inds = sum(1 for _ in ont.individuals_in_signature())
-    triples = len(ont)
+    
+    # Use rdflib graph to count triples, as len(ont) can fail with database issues
+    try:
+        triples = len(ont)
+    except Exception:
+        # Fallback to counting via rdflib graph for any error (TypeError, AttributeError, sqlite3.InterfaceError, etc.)
+        g = ont._world.as_rdflib_graph()
+        triples = len(g)
 
     return {
         "triples": triples,
@@ -62,6 +95,26 @@ def _ontology_summary(ont: Ontology) -> Dict[str, int]:
         "data_properties": data_props,
         "individuals": inds,
     }
+
+def _ontology_info(oid: str, ont: Ontology, filename: str) -> OntologyInfo:
+    """Returns full ontology info including id, filename, iri, and summary with namespace."""
+    summary = _ontology_summary(ont)
+    
+    # Get namespace/ontology IRI using helper function
+    ontology_iri = _get_ontology_iri(ont)
+    
+    # Add namespace to summary
+    summary_with_namespace = {**summary}
+    if ontology_iri:
+        summary_with_namespace["namespace"] = ontology_iri
+    
+    return OntologyInfo(
+        id=oid,
+        filename=filename,
+        ontology_iri=ontology_iri,
+        summary=summary_with_namespace
+    )
+
 
 
 # ---------- Routes ----------
@@ -90,31 +143,19 @@ async def upload_ontology(file: UploadFile = File(...)):
         # Load ontology into memory (owlready2 world inside your Ontology class)
         ont = Ontology(tmp_path, load=True)
 
-        # Prefer the ontology IRI as a stable key if present; otherwise use a UUID
         oid = None
-        try:
-            onto_id = ont.get_ontology_id()
-            if onto_id:
-                doc_iri = onto_id.get_ontology_iri() or onto_id.get_version_iri()
-                oid = doc_iri.str()
-        except Exception:
-            pass
-        if not oid:
-            oid = str(uuid.uuid4())
+        oid = str(uuid.uuid4())
 
-        ONTOLOGY_STORE[oid] = ont
+        ONTOLOGY_STORE[oid] = (ont, file.filename or "unknown.owl")
+        ONTOLOGY_LOCKS[oid] = Lock()  # Create a lock for this ontology
 
         # Summarize
         summary = _ontology_summary(ont)
-        ontology_iri = None
-        try:
-            ontology_iri = ont.get_ontology_id().get_ontology_iri().str()
-        except Exception:
-            pass
+        ontology_iri = _get_ontology_iri(ont)
 
         return UploadResponse(
             id=oid,
-            filename=file.filename,
+            filename=file.filename or "unknown.owl",
             ontology_iri=ontology_iri,
             summary=summary
         )
@@ -134,58 +175,86 @@ def list_ontologies():
 
 
 @app.get("/ontology/{oid}/summary", response_model=SummaryResponse)
-def get_summary(oid: str):
-    ont = ONTOLOGY_STORE.get(oid)
-    if ont is None:
+async def get_summary(oid: str):
+    result = ONTOLOGY_STORE.get(oid)
+    if result is None:
         raise HTTPException(status_code=404, detail="Ontology ID not found.")
-    summary = _ontology_summary(ont)
-    ontology_iri = None
-    try:
-        ontology_iri = ont.get_ontology_id().get_ontology_iri().str()
-    except Exception:
-        pass
-    return SummaryResponse(id=oid, ontology_iri=ontology_iri, summary=summary)
+    ont, _ = result
+    
+    # Get or create lock for this ontology
+    lock = ONTOLOGY_LOCKS.setdefault(oid, Lock())
+    
+    def _get_summary():
+        with lock:
+            summary = _ontology_summary(ont)
+            ontology_iri = _get_ontology_iri(ont)
+            return SummaryResponse(id=oid, ontology_iri=ontology_iri, summary=summary)
+    
+    return await asyncio.to_thread(_get_summary)
 
+@app.get("/ontology/summary_all")
+async def get_summary_all():
+    def _get_all_summaries():
+        summaries = []
+        for oid, (ont, filename) in ONTOLOGY_STORE.items():
+            # Get or create lock for this ontology
+            lock = ONTOLOGY_LOCKS.setdefault(oid, Lock())
+            with lock:
+                summaries.append(_ontology_info(oid, ont, filename))
+        return SummaryAllResponse(summary=summaries)
+    
+    return await asyncio.to_thread(_get_all_summaries)
 
 @app.delete("/ontology/{oid}")
 def delete_ontology(oid: str):
     if oid not in ONTOLOGY_STORE:
         raise HTTPException(status_code=404, detail="Ontology ID not found.")
     del ONTOLOGY_STORE[oid]
+    # Also remove the lock for this ontology
+    if oid in ONTOLOGY_LOCKS:
+        del ONTOLOGY_LOCKS[oid]
     return {"ok": True, "deleted": oid}
 
 @app.get("/ontology/{oid}/triples", response_model=TriplesResponse)
-def list_triples(oid: str, limit: int = 1000, offset: int = 0):
-    ont = ONTOLOGY_STORE.get(oid)
-    if not ont:
+async def list_triples(oid: str, limit: Optional[int] = None, offset: int = 0):
+    result = ONTOLOGY_STORE.get(oid)
+    if not result:
         raise HTTPException(status_code=404, detail="Ontology ID not found.")
+    ont, _ = result
 
-    # rdflib view over the owlready2 world
-    g = ont._world.as_rdflib_graph()
+    # Get or create lock for this ontology
+    lock = ONTOLOGY_LOCKS.setdefault(oid, Lock())
 
-    # optional total count (can be expensive on huge graphs—omit if not needed)
-    total = len(g)
+    def _get_triples():
+        with lock:
+            # rdflib view over the owlready2 world
+            g = ont._world.as_rdflib_graph()
 
-    triples_out: List[TripleJSON] = []
-    # paginate
-    for i, (s, p, o) in enumerate(g.triples((None, None, None))):
-        if i < offset: 
-            continue
-        if len(triples_out) >= limit:
-            break
+            # optional total count (can be expensive on huge graphs—omit if not needed)
+            total = len(g)
 
-        def node_to_json(x):
-            if isinstance(x, Literal):
-                return {
-                    "type": "literal",
-                    "value": str(x),
-                    "datatype": str(x.datatype) if x.datatype else None,
-                    "lang": x.language,
-                }
-            elif isinstance(x, (URIRef, BNode)):
-                return str(x)
-            return str(x)
+            triples_out: List[TripleJSON] = []
+            # paginate
+            for i, (s, p, o) in enumerate(g.triples((None, None, None))):
+                if i < offset: 
+                    continue
+                if limit is not None and len(triples_out) >= limit:
+                    break
 
-        triples_out.append(TripleJSON(s=str(s), p=str(p), o=node_to_json(o)))
+                def node_to_json(x):
+                    if isinstance(x, Literal):
+                        return {
+                            "type": "literal",
+                            "value": str(x),
+                            "datatype": str(x.datatype) if x.datatype else None,
+                            "lang": x.language,
+                        }
+                    elif isinstance(x, (URIRef, BNode)):
+                        return str(x)
+                    return str(x)
 
-    return TriplesResponse(id=oid, total=total, triples=triples_out)
+                triples_out.append(TripleJSON(s=str(s), p=str(p), o=node_to_json(o)))
+
+            return TriplesResponse(id=oid, total=total, triples=triples_out)
+    
+    return await asyncio.to_thread(_get_triples)

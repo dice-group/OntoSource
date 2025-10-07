@@ -9,10 +9,12 @@ export async function GET(
   try {
     const { id } = await params
     const { searchParams } = new URL(request.url)
-    const limit = searchParams.get('limit') || '1000'
+    const limit = searchParams.get('limit') 
     const offset = searchParams.get('offset') || '0'
     
-    const url = `${FASTAPI_BASE_URL}/ontology/${id}/triples?limit=${limit}&offset=${offset}`
+    // Build URL with optional limit parameter
+    const limitParam = limit ? `&limit=${limit}` : ''
+    const url = `${FASTAPI_BASE_URL}/ontology/${id}/triples?offset=${offset}${limitParam}`
     const response = await fetch(url)
     
     if (!response.ok) {

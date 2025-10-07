@@ -17,6 +17,7 @@ export interface OntologySummary {
   object_properties: number
   data_properties: number
   individuals: number
+  namespace?: string
 }
 
 export interface Ontology {

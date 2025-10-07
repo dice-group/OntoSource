@@ -1,8 +1,10 @@
 'use client'
 
 import { useCallback, useState } from 'react'
-import { uploadOntology } from '../hooks/use-ontology-api'
 import { useAddOntology, useSetOntologyError } from '../store/ontology-store'
+import { useMutation } from '@tanstack/react-query'
+import createFileUploadMutationOptions from '../mutationOptions/createFileUploadMutationOptions'
+
 
 interface FileUploadProps {
   onUploadSuccess?: () => void
@@ -12,29 +14,11 @@ interface FileUploadProps {
 export default function FileUpload({ onUploadSuccess, onUploadError }: FileUploadProps) {
   const [isUploading, setIsUploading] = useState(false)
   const [dragOver, setDragOver] = useState(false)
-  const addOntology = useAddOntology()
-  const setError = useSetOntologyError()
+  
 
-  const handleUpload = useCallback(async (file: File) => {
-    if (!file) return
-
-    setIsUploading(true)
-    setError(null)
-
-    try {
-      const ontology = await uploadOntology(file)
-      addOntology(ontology)
-      onUploadSuccess?.()
-    } catch (error) {
-      const errorMessage = error instanceof Error ? error.message : 'Upload failed'
-      setError(errorMessage)
-      onUploadError?.(errorMessage)
-    } finally {
-      setIsUploading(false)
-    }
-  }, [addOntology, setError, onUploadSuccess, onUploadError])
-
-  const handleDrop = useCallback((e: React.DragEvent) => {
+  const {mutate} = useMutation(createFileUploadMutationOptions())
+  
+  const handleDrop = (e: React.DragEvent) => {
     e.preventDefault()
     setDragOver(false)
     
@@ -42,16 +26,16 @@ export default function FileUpload({ onUploadSuccess, onUploadError }: FileUploa
     const file = files[0]
     
     if (file) {
-      handleUpload(file)
+      mutate(file)
     }
-  }, [handleUpload])
+  }
 
-  const handleFileInput = useCallback((e: React.ChangeEvent<HTMLInputElement>) => {
+  const handleFileInput = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0]
     if (file) {
-      handleUpload(file)
+      mutate(file)
     }
-  }, [handleUpload])
+  }
 
   return (
     <div className="w-full max-w-lg mx-auto">

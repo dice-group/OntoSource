@@ -9,7 +9,11 @@
     "lint": "eslint"
   },
   "dependencies": {
+    "@tanstack/react-query": "^5.90.2",
+    "@types/dagre": "^0.7.53",
+    "@xyflow/react": "^12.8.6",
     "axios": "^1.12.2",
+    "dagre": "^0.8.5",
     "next": "15.5.3",
     "react": "19.1.0",
     "react-dom": "19.1.0",

@@ -1,46 +1,25 @@
 'use client'
 
 import { useCallback } from 'react'
-import { useOntologySummary, deleteOntology } from '../hooks/use-ontology-api'
-import { useOntologies, useSelectedOntologyId, useSetSelectedOntology, useRemoveOntology } from '../store/ontology-store'
+import { useOntologies, useSelectedOntologyId, useSetSelectedOntology, useRemoveOntology, OntologySummary } from '../store/ontology-store'
+import { useMutation, useQuery } from '@tanstack/react-query'
+import { Ontology } from '../store/ontology-store'
+import createSummaryAllQueryOptions from '../queryOptions/createSummaryAllQueryOptions'
+import createDeleteOntologyMutationOptions from '../mutationOptions/createDeleteOntologyMutationOptions'
 
 interface OntologyItemProps {
   id: string
+  filename: string
   isSelected: boolean
   onSelect: (id: string) => void
-  onDelete: (id: string) => void
+  ontology_summary: OntologySummary
 }
 
-function OntologyItem({ id, isSelected, onSelect, onDelete }: OntologyItemProps) {
-  const { ontology, isLoading, error } = useOntologySummary(id)
 
-  const handleDelete = useCallback(async () => {
-    if (confirm('Are you sure you want to delete this ontology?')) {
-      try {
-        await deleteOntology(id)
-        onDelete(id)
-      } catch (error) {
-        console.error('Failed to delete ontology:', error)
-      }
-    }
-  }, [id, onDelete])
 
-  if (isLoading) {
-    return (
-      <div className="p-4 border rounded-lg animate-pulse">
-        <div className="h-4 bg-gray-200 rounded w-3/4 mb-2"></div>
-        <div className="h-3 bg-gray-200 rounded w-1/2"></div>
-      </div>
-    )
-  }
+function OntologyItem({ id, filename, isSelected, onSelect, ontology_summary }: OntologyItemProps) {
+  const {mutate} = useMutation(createDeleteOntologyMutationOptions())
 
-  if (error || !ontology) {
-    return (
-      <div className="p-4 border rounded-lg border-red-200 bg-red-50">
-        <p className="text-red-600 text-sm">Error loading ontology: {id}</p>
-      </div>
-    )
-  }
 
   return (
     <div
@@ -56,24 +35,27 @@ function OntologyItem({ id, isSelected, onSelect, onDelete }: OntologyItemProps)
       <div className="flex justify-between items-start">
         <div className="flex-1">
           <h3 className="font-medium text-gray-900 mb-1">
-            {ontology.filename}
+            {filename}
           </h3>
-          {ontology.ontology_iri && (
+          <p className="text-xs text-gray-500 mb-1 truncate font-mono">
+            ID: {id}
+          </p>
+          {ontology_summary.namespace && (
             <p className="text-xs text-gray-500 mb-2 truncate">
-              IRI: {ontology.ontology_iri}
+              IRI: {ontology_summary.namespace}
             </p>
           )}
           <div className="grid grid-cols-2 gap-2 text-xs text-gray-600">
-            <div>Classes: {ontology.summary.classes}</div>
-            <div>Properties: {ontology.summary.object_properties + ontology.summary.data_properties}</div>
-            <div>Individuals: {ontology.summary.individuals}</div>
-            <div>Triples: {ontology.summary.triples}</div>
+            <div>Classes: {ontology_summary.classes}</div>
+            <div>Properties: {ontology_summary.object_properties + ontology_summary.data_properties}</div>
+            <div>Individuals: {ontology_summary.individuals}</div>
+            <div>Triples: {ontology_summary.triples}</div>
           </div>
         </div>
         <button
           onClick={(e) => {
             e.stopPropagation()
-            handleDelete()
+            mutate(id)
           }}
           className="ml-2 p-1 text-gray-400 hover:text-red-600 transition-colors"
           title="Delete ontology"
@@ -93,49 +75,65 @@ function OntologyItem({ id, isSelected, onSelect, onDelete }: OntologyItemProps)
 }
 
 export default function OntologyList() {
-  const ontologies = useOntologies()
   const selectedId = useSelectedOntologyId()
   const setSelectedOntology = useSetSelectedOntology()
-  const removeOntology = useRemoveOntology()
+ 
+  const {data, isPending, error} = useQuery(createSummaryAllQueryOptions())
 
   const handleSelect = useCallback((id: string) => {
     setSelectedOntology(selectedId === id ? null : id)
   }, [selectedId, setSelectedOntology])
 
-  const handleDelete = useCallback((id: string) => {
-    removeOntology(id)
-  }, [removeOntology])
+ 
 
-  if (ontologies.length === 0) {
+  if (isPending) {
     return (
       <div className="bg-white rounded-lg border shadow-sm p-6">
         <h2 className="text-lg font-medium text-gray-900 mb-2">Loaded Ontologies</h2>
-        <p className="text-gray-500">No ontologies loaded. Upload a file to get started.</p>
+        <p className="text-gray-500">Loading ontologies...</p>
       </div>
     )
   }
 
+  if (error) {
+    return (
+      <div className="bg-white rounded-lg border shadow-sm p-6">
+        <h2 className="text-lg font-medium text-gray-900 mb-2">Loaded Ontologies</h2>
+        <p className="text-gray-500">Error loading ontologies: {error.message}</p>
+      </div>
+    )
+  }
+if (data?.summary && data.summary.length !== 0) {
   return (
     <div className="bg-white rounded-lg border shadow-sm">
       <div className="p-4 border-b">
         <h2 className="text-lg font-medium text-gray-900">
-          Loaded Ontologies ({ontologies.length})
+          Loaded Ontologies ({data.summary.length})
         </h2>
         <p className="text-sm text-gray-500">
           Click on an ontology to view its knowledge graph
         </p>
       </div>
       <div className="p-4 space-y-3 max-h-96 overflow-y-auto">
-        {ontologies.map((ontology) => (
+        {data.summary.map((ontology : Ontology) => (
           <OntologyItem
             key={ontology.id}
             id={ontology.id}
+            filename={ontology.filename}
+            ontology_summary={ontology.summary}
             isSelected={selectedId === ontology.id}
             onSelect={handleSelect}
-            onDelete={handleDelete}
           />
         ))}
       </div>
     </div>
   )
+} else {
+  return (
+    <div className="bg-white rounded-lg border shadow-sm p-6">
+      <h2 className="text-lg font-medium text-gray-900 mb-2">Loaded Ontologies</h2>
+      <p className="text-gray-500">No ontologies loaded. Upload a file to get started.</p>
+    </div>
+  )
+}
 } 
