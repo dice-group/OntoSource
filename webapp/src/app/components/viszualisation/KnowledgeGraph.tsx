@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useMemo, useState, useRef, useEffect } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { Triple } from "../../store/ontology-store";
 import {
@@ -56,6 +56,13 @@ export default function KnowledgeGraph({
   const [hiddenRelations, setHiddenRelations] = useState<Set<string>>(
     new Set(),
   );
+
+  // Fullscreen state
+  const [isFullscreen, setIsFullscreen] = useState(false);
+  const containerRef = useRef<HTMLDivElement>(null);
+  
+  // Legend visibility state
+  const [showLegend, setShowLegend] = useState(true);
 
   const { data, isPending, error } = useQuery({
     ...createGraphDataQueryOptions(ontologyId || ""),
@@ -415,6 +422,36 @@ export default function KnowledgeGraph({
       return newSet;
     });
   };
+
+  // Fullscreen functionality
+  const toggleFullscreen = async () => {
+    if (!containerRef.current) return;
+
+    try {
+      if (!document.fullscreenElement) {
+        await containerRef.current.requestFullscreen();
+        setIsFullscreen(true);
+      } else {
+        await document.exitFullscreen();
+        setIsFullscreen(false);
+      }
+    } catch (err) {
+      console.error("Error toggling fullscreen:", err);
+    }
+  };
+
+  // Listen for fullscreen changes (e.g., user presses ESC)
+  useEffect(() => {
+    const handleFullscreenChange = () => {
+      setIsFullscreen(!!document.fullscreenElement);
+    };
+
+    document.addEventListener("fullscreenchange", handleFullscreenChange);
+    return () => {
+      document.removeEventListener("fullscreenchange", handleFullscreenChange);
+    };
+  }, []);
+
   if (!ontologyId) {
     return (
       <div className="min-h-full bg-white rounded-lg border shadow-sm p-8 flex items-center justify-center ">
@@ -476,15 +513,125 @@ export default function KnowledgeGraph({
   const hasVisibleTriples = triples.length > 0;
 
   return (
-    <div className="bg-white rounded-lg border shadow-sm flex flex-col h-screen">
+    <div 
+      ref={containerRef}
+      className={`bg-white rounded-lg border shadow-sm flex flex-col transition-all duration-300 ${
+        isFullscreen ? 'fixed inset-0 z-50 rounded-none h-screen w-screen' : 'h-screen'
+      }`}
+    >
       <div className="p-4 border-b space-y-3 flex-shrink-0">
-        <div>
-          <h3 className="text-lg font-medium text-gray-900">Knowledge Graph</h3>
-          <p className="text-sm text-gray-500">
-            Showing {nodes.length} nodes and {edges.length} relationships
-            {total > 0 &&
-              ` (displaying ${triples.length} of ${filteredTotal} filtered triples, ${total} total)`}
-          </p>
+        <div className="flex items-start justify-between">
+          <div className="flex-1">
+            <h3 className="text-lg font-medium text-gray-900">Knowledge Graph</h3>
+            <p className="text-sm text-gray-500">
+              Showing {nodes.length} nodes and {edges.length} relationships
+              {total > 0 &&
+                ` (displaying ${triples.length} of ${filteredTotal} filtered triples, ${total} total)`}
+            </p>
+          </div>
+          
+          <div className="flex items-center gap-2">
+            {/* Legend Toggle Button */}
+            <button
+              onClick={() => setShowLegend(!showLegend)}
+              className="group relative p-2.5 rounded-lg bg-gradient-to-br from-purple-50 to-pink-50 hover:from-purple-100 hover:to-pink-100 border border-purple-200 hover:border-purple-300 transition-all duration-200 hover:shadow-md active:scale-95"
+              title={showLegend ? "Hide legend" : "Show legend"}
+            >
+              <div className="relative w-5 h-5">
+                {/* Eye icon (show) */}
+                <svg
+                  className={`absolute inset-0 w-5 h-5 text-purple-600 transition-all duration-300 ${
+                    showLegend ? 'opacity-100 scale-100' : 'opacity-0 scale-50'
+                  }`}
+                  fill="none"
+                  stroke="currentColor"
+                  viewBox="0 0 24 24"
+                >
+                  <path
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    strokeWidth={2}
+                    d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"
+                  />
+                </svg>
+                {/* Eye-off icon (hide) */}
+                <svg
+                  className={`absolute inset-0 w-5 h-5 text-purple-600 transition-all duration-300 ${
+                    showLegend ? 'opacity-0 scale-50' : 'opacity-100 scale-100'
+                  }`}
+                  fill="none"
+                  stroke="currentColor"
+                  viewBox="0 0 24 24"
+                >
+                  <path
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    strokeWidth={2}
+                    d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"
+                  />
+                  <path
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    strokeWidth={2}
+                    d="M3 3l18 18"
+                  />
+                </svg>
+              </div>
+              
+              {/* Tooltip */}
+              <span className="absolute -bottom-8 left-1/2 -translate-x-1/2 px-2 py-1 bg-gray-900 text-white text-xs rounded whitespace-nowrap opacity-0 group-hover:opacity-100 transition-opacity duration-200 pointer-events-none">
+                {showLegend ? 'Hide legend' : 'Show legend'}
+              </span>
+            </button>
+
+            {/* Fullscreen Button */}
+            <button
+              onClick={toggleFullscreen}
+              className="group relative p-2.5 rounded-lg bg-gradient-to-br from-blue-50 to-indigo-50 hover:from-blue-100 hover:to-indigo-100 border border-blue-200 hover:border-blue-300 transition-all duration-200 hover:shadow-md active:scale-95"
+              title={isFullscreen ? "Exit fullscreen (ESC)" : "Enter fullscreen"}
+            >
+              <div className="relative w-5 h-5">
+                {/* Animated icon */}
+                <svg
+                  className={`absolute inset-0 w-5 h-5 text-blue-600 transition-all duration-300 ${
+                    isFullscreen ? 'opacity-0 rotate-90 scale-50' : 'opacity-100 rotate-0 scale-100'
+                  }`}
+                  fill="none"
+                  stroke="currentColor"
+                  viewBox="0 0 24 24"
+                >
+                  {/* Expand icon */}
+                  <path
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    strokeWidth={2}
+                    d="M4 8V4m0 0h4M4 4l5 5m11-1V4m0 0h-4m4 0l-5 5M4 16v4m0 0h4m-4 0l5-5m11 5l-5-5m5 5v-4m0 4h-4"
+                  />
+                </svg>
+                <svg
+                  className={`absolute inset-0 w-5 h-5 text-blue-600 transition-all duration-300 ${
+                    isFullscreen ? 'opacity-100 rotate-0 scale-100' : 'opacity-0 -rotate-90 scale-50'
+                  }`}
+                  fill="none"
+                  stroke="currentColor"
+                  viewBox="0 0 24 24"
+                >
+                  {/* Compress icon */}
+                  <path
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    strokeWidth={2}
+                    d="M9 9V4.5M9 9H4.5M9 9L3.75 3.75M9 15v4.5M9 15H4.5M9 15l-5.25 5.25M15 9h4.5M15 9V4.5M15 9l5.25-5.25M15 15h4.5M15 15v4.5m0-4.5l5.25 5.25"
+                  />
+                </svg>
+              </div>
+              
+              {/* Tooltip */}
+              <span className="absolute -bottom-8 left-1/2 -translate-x-1/2 px-2 py-1 bg-gray-900 text-white text-xs rounded whitespace-nowrap opacity-0 group-hover:opacity-100 transition-opacity duration-200 pointer-events-none">
+                {isFullscreen ? 'Exit fullscreen' : 'Fullscreen'}
+              </span>
+            </button>
+          </div>
         </div>
 
         {/* Triple display limit control */}
@@ -639,110 +786,117 @@ export default function KnowledgeGraph({
         )}
       </div>
 
-      <div className="p-4 border-t bg-gray-50 flex-shrink-0">
-        <h4 className="text-sm font-medium text-gray-900 mb-3">Legend</h4>
+      {/* Legend Section */}
+      <div 
+        className={`border-t bg-gray-50 flex-shrink-0 transition-all duration-300 ease-in-out overflow-hidden ${
+          showLegend ? 'max-h-[500px] opacity-100 p-4' : 'max-h-0 opacity-0 p-0'
+        }`}
+      >
+        <div className={`transition-all duration-300 ${showLegend ? 'opacity-100 translate-y-0' : 'opacity-0 -translate-y-4'}`}>
+          <h4 className="text-sm font-medium text-gray-900 mb-3">Legend</h4>
 
-        <div className="mb-3">
-          <h5 className="text-xs font-medium text-gray-700 mb-1">
-            Knowledge Types
-          </h5>
-          <div className="flex flex-wrap gap-4 text-xs text-gray-700">
-            <div className="flex items-center space-x-1">
-              <div className="w-12 h-6 bg-blue-500 rounded border-2 border-black flex items-center justify-center text-white text-[10px] font-semibold">
-                TB
-              </div>
-              <span>TBox (Schema: Classes & Properties)</span>
-            </div>
-            <div className="flex items-center space-x-1">
-              <div className="w-12 h-6 bg-orange-500 rounded border-2 border-dashed border-black flex items-center justify-center text-white text-[10px]">
-                AB
-              </div>
-              <span>ABox (Instances: Individuals)</span>
-            </div>
-            <div className="flex items-center space-x-1">
-              <div className="w-12 h-6 bg-red-500 rounded border border-dotted border-black flex items-center justify-center text-white text-[10px] italic">
-                Lit
-              </div>
-              <span>Literals (Data values)</span>
-            </div>
-          </div>
-        </div>
-
-        <div className="mb-3">
-          <h5 className="text-xs font-medium text-gray-700 mb-1">
-            Node Types (click to hide/show)
-          </h5>
-          <div className="flex flex-wrap gap-4 text-xs text-gray-700">
-            <LegendDot
-              color="#3b82f6"
-              label="Classes"
-              onClick={() => toggleNodeType("class")}
-              isHidden={hiddenNodeTypes.has("class")}
-            />
-            <LegendDot
-              color="#10b981"
-              label="Properties"
-              onClick={() => toggleNodeType("property")}
-              isHidden={hiddenNodeTypes.has("property")}
-            />
-            <LegendDot
-              color="#f59e0b"
-              label="Individuals"
-              onClick={() => toggleNodeType("individual")}
-              isHidden={hiddenNodeTypes.has("individual")}
-            />
-            <LegendDot
-              color="#ef4444"
-              label="Literals"
-              onClick={() => toggleNodeType("literal")}
-              isHidden={hiddenNodeTypes.has("literal")}
-            />
-          </div>
-        </div>
-
-        {schemaRelations.length > 0 && (
           <div className="mb-3">
             <h5 className="text-xs font-medium text-gray-700 mb-1">
-              Schema Relations ({schemaRelations.length})
-              <span className="ml-1 text-gray-500 font-normal">
-                (RDF/RDFS/OWL - click to hide/show)
-              </span>
+              Knowledge Types
             </h5>
-            <div className="flex flex-wrap gap-3 text-xs text-gray-700 max-h-32 overflow-y-auto">
-              {schemaRelations.map((rel) => (
-                <LegendLine
-                  key={rel.uri}
-                  color={rel.color}
-                  label={rel.label}
-                  onClick={() => toggleRelation(rel.uri)}
-                  isHidden={hiddenRelations.has(rel.uri)}
-                />
-              ))}
+            <div className="flex flex-wrap gap-4 text-xs text-gray-700">
+              <div className="flex items-center space-x-1">
+                <div className="w-12 h-6 bg-blue-500 rounded border-2 border-black flex items-center justify-center text-white text-[10px] font-semibold">
+                  TB
+                </div>
+                <span>TBox (Schema: Classes & Properties)</span>
+              </div>
+              <div className="flex items-center space-x-1">
+                <div className="w-12 h-6 bg-orange-500 rounded border-2 border-dashed border-black flex items-center justify-center text-white text-[10px]">
+                  AB
+                </div>
+                <span>ABox (Instances: Individuals)</span>
+              </div>
+              <div className="flex items-center space-x-1">
+                <div className="w-12 h-6 bg-red-500 rounded border border-dotted border-black flex items-center justify-center text-white text-[10px] italic">
+                  Lit
+                </div>
+                <span>Literals (Data values)</span>
+              </div>
             </div>
           </div>
-        )}
 
-        {ontologyRelations.length > 0 && (
-          <div>
+          <div className="mb-3">
             <h5 className="text-xs font-medium text-gray-700 mb-1">
-              Ontology Relations ({ontologyRelations.length})
-              <span className="ml-1 text-gray-500 font-normal">
-                (Domain-specific - click to hide/show)
-              </span>
+              Node Types (click to hide/show)
             </h5>
-            <div className="flex flex-wrap gap-3 text-xs text-gray-700 max-h-32 overflow-y-auto">
-              {ontologyRelations.map((rel) => (
-                <LegendLine
-                  key={rel.uri}
-                  color={rel.color}
-                  label={rel.label}
-                  onClick={() => toggleRelation(rel.uri)}
-                  isHidden={hiddenRelations.has(rel.uri)}
-                />
-              ))}
+            <div className="flex flex-wrap gap-4 text-xs text-gray-700">
+              <LegendDot
+                color="#3b82f6"
+                label="Classes"
+                onClick={() => toggleNodeType("class")}
+                isHidden={hiddenNodeTypes.has("class")}
+              />
+              <LegendDot
+                color="#10b981"
+                label="Properties"
+                onClick={() => toggleNodeType("property")}
+                isHidden={hiddenNodeTypes.has("property")}
+              />
+              <LegendDot
+                color="#f59e0b"
+                label="Individuals"
+                onClick={() => toggleNodeType("individual")}
+                isHidden={hiddenNodeTypes.has("individual")}
+              />
+              <LegendDot
+                color="#ef4444"
+                label="Literals"
+                onClick={() => toggleNodeType("literal")}
+                isHidden={hiddenNodeTypes.has("literal")}
+              />
             </div>
           </div>
-        )}
+
+          {schemaRelations.length > 0 && (
+            <div className="mb-3">
+              <h5 className="text-xs font-medium text-gray-700 mb-1">
+                Schema Relations ({schemaRelations.length})
+                <span className="ml-1 text-gray-500 font-normal">
+                  (RDF/RDFS/OWL - click to hide/show)
+                </span>
+              </h5>
+              <div className="flex flex-wrap gap-3 text-xs text-gray-700 max-h-32 overflow-y-auto">
+                {schemaRelations.map((rel) => (
+                  <LegendLine
+                    key={rel.uri}
+                    color={rel.color}
+                    label={rel.label}
+                    onClick={() => toggleRelation(rel.uri)}
+                    isHidden={hiddenRelations.has(rel.uri)}
+                  />
+                ))}
+              </div>
+            </div>
+          )}
+
+          {ontologyRelations.length > 0 && (
+            <div>
+              <h5 className="text-xs font-medium text-gray-700 mb-1">
+                Ontology Relations ({ontologyRelations.length})
+                <span className="ml-1 text-gray-500 font-normal">
+                  (Domain-specific - click to hide/show)
+                </span>
+              </h5>
+              <div className="flex flex-wrap gap-3 text-xs text-gray-700 max-h-32 overflow-y-auto">
+                {ontologyRelations.map((rel) => (
+                  <LegendLine
+                    key={rel.uri}
+                    color={rel.color}
+                    label={rel.label}
+                    onClick={() => toggleRelation(rel.uri)}
+                    isHidden={hiddenRelations.has(rel.uri)}
+                  />
+                ))}
+              </div>
+            </div>
+          )}
+        </div>
       </div>
     </div>
   );
