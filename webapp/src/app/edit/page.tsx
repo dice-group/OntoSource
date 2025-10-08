@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useQuery, useMutation } from "@tanstack/react-query";
 import createSummaryAllQueryOptions from "../queryOptions/createSummaryAllQueryOptions";
 import createOntologyEntitiesQueryOptions from "../queryOptions/createOntologyEntitiesQueryOptions";
@@ -122,6 +122,18 @@ function EditPageContent() {
   const saveOntologyMutation = useMutation(
     createSaveOntologyMutationOptions(selectedOntologyId || ""),
   );
+
+  const selectedOntology = data?.summary?.find(
+    (o: Ontology) => o.id === selectedOntologyId,
+  );
+
+  // Automatically set namespace when selected ontology changes
+  useEffect(() => {
+    if (selectedOntology) {
+      setNamespace(selectedOntology.summary.namespace || selectedOntology.ontology_iri || "");
+      setIsCreatingNew(false);
+    }
+  }, [selectedOntology]);
 
   const handleSelectOntology = (ontology: Ontology) => {
     setSelectedOntologyId(ontology.id);
@@ -281,10 +293,6 @@ function EditPageContent() {
     setSuperclassName("");
     setSuperclassNamespace("");
   };
-
-  const selectedOntology = data?.summary?.find(
-    (o: Ontology) => o.id === selectedOntologyId,
-  );
 
   return (
     <div className="min-h-screen bg-gray-50">
