@@ -1,6 +1,6 @@
 from fastapi import FastAPI
 
-from routers import ontology, modify
+from routers import ontology, modify, reasoning, neural_reasoning
 import store
 
 app = FastAPI(title="Ontology Upload API")
@@ -10,3 +10,5 @@ app.state.ontology_locks = store.ONTOLOGY_LOCKS
 
 app.include_router(ontology.router)
 app.include_router(modify.router)
+app.include_router(reasoning.router)
+app.include_router(neural_reasoning.router)

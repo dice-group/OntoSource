@@ -14,7 +14,7 @@ import createAddObjectPropertyAssertionMutationOptions from "../mutationOptions/
 import createAddDataPropertyAssertionMutationOptions from "../mutationOptions/createAddDataPropertyAssertionMutationOptions";
 import createAddSubclassOfMutationOptions from "../mutationOptions/createAddSubclassOfMutationOptions";
 import createSaveOntologyMutationOptions from "../mutationOptions/createSaveOntologyMutationOptions";
-import { Ontology } from "../store/ontology-store";
+import { Ontology, useSelectedOntologyId, useSetSelectedOntology } from "../store/ontology-store";
 import Header from "../components/Header";
 
 type AxiomType =
@@ -42,9 +42,8 @@ type EntitiesResponse = {
 function EditPageContent() {
   const { data } = useQuery(createSummaryAllQueryOptions());
 
-  const [selectedOntologyId, setSelectedOntologyId] = useState<string | null>(
-    null,
-  );
+  const selectedOntologyId = useSelectedOntologyId();
+  const setSelectedOntologyId = useSetSelectedOntology();
 
   const { data: entitiesData } = useQuery(
     createOntologyEntitiesQueryOptions(selectedOntologyId),
