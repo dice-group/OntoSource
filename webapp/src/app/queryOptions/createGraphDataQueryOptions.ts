@@ -4,7 +4,9 @@ import { queryOptions } from "@tanstack/react-query";
 export default function createGraphDataQueryOptions(id: string) {
   return queryOptions({
     queryKey: ['graph-data', id],
-    queryFn: () => getGraphData(id)
+    queryFn: () => getGraphData(id),
+    staleTime: 0, // Always consider data stale
+    refetchOnMount: 'always' // Refetch when component mounts
   })
 }
 

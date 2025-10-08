@@ -1,9 +1,9 @@
 'use client'
 
 import { useCallback, useState } from 'react'
-import { useAddOntology, useSetOntologyError } from '../store/ontology-store'
+import { useAddOntology, useSetOntologyError } from '../../store/ontology-store'
 import { useMutation } from '@tanstack/react-query'
-import createFileUploadMutationOptions from '../mutationOptions/createFileUploadMutationOptions'
+import createFileUploadMutationOptions from '../../mutationOptions/createFileUploadMutationOptions'
 
 
 interface FileUploadProps {

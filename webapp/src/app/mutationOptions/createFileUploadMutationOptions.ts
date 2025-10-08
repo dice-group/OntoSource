@@ -1,13 +1,18 @@
 import { mutationOptions } from "@tanstack/react-query";
 import { useQueryClient } from "@tanstack/react-query";
 import createSummaryAllQueryOptions from "../queryOptions/createSummaryAllQueryOptions";
+import { toast } from "sonner";
 
 export default function createFileUploadMutationOptions() {
   const queryClient = useQueryClient()
   return mutationOptions({
     mutationFn: uploadOntology,
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: createSummaryAllQueryOptions().queryKey })
+      queryClient.invalidateQueries()
+      toast.success("Ontology file uploaded successfully!")
+    },
+    onError: (error: Error) => {
+      toast.error(error.message || "Failed to upload ontology file")
     }
   })
 }

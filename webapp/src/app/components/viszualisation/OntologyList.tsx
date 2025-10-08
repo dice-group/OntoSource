@@ -1,11 +1,11 @@
 'use client'
 
 import { useCallback } from 'react'
-import { useOntologies, useSelectedOntologyId, useSetSelectedOntology, useRemoveOntology, OntologySummary } from '../store/ontology-store'
+import { useOntologies, useSelectedOntologyId, useSetSelectedOntology, useRemoveOntology, OntologySummary } from '../../store/ontology-store'
 import { useMutation, useQuery } from '@tanstack/react-query'
-import { Ontology } from '../store/ontology-store'
-import createSummaryAllQueryOptions from '../queryOptions/createSummaryAllQueryOptions'
-import createDeleteOntologyMutationOptions from '../mutationOptions/createDeleteOntologyMutationOptions'
+import { Ontology } from '../../store/ontology-store'
+import createSummaryAllQueryOptions from '../../queryOptions/createSummaryAllQueryOptions'
+import createDeleteOntologyMutationOptions from '../../mutationOptions/createDeleteOntologyMutationOptions'
 
 interface OntologyItemProps {
   id: string

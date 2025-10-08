@@ -10,10 +10,9 @@ from threading import Lock
 from owlapy.owl_ontology import Ontology
 from rdflib import BNode, URIRef, Literal
 
-router = APIRouter(prefix="/ontology", tags=["ontology"])
+from store import ONTOLOGY_STORE, ONTOLOGY_LOCKS
 
-ONTOLOGY_STORE: Dict[str, tuple[Ontology, str]] = {}
-ONTOLOGY_LOCKS: Dict[str, Lock] = {}
+router = APIRouter(prefix="/ontology", tags=["ontology"])
 
 
 class UploadResponse(BaseModel):
@@ -50,6 +49,16 @@ class TriplesResponse(BaseModel):
     id: str
     total: Optional[int] = None
     triples: List[TripleJSON]
+
+class EntityItem(BaseModel):
+    iri: str
+    name: str
+
+class EntitiesResponse(BaseModel):
+    classes: List[EntityItem]
+    individuals: List[EntityItem]
+    object_properties: List[EntityItem]
+    data_properties: List[EntityItem]
 
 def _get_ontology_iri(ont: Ontology) -> Optional[str]:
     try:
@@ -223,4 +232,49 @@ async def list_triples(oid: str, limit: Optional[int] = None, offset: int = 0):
             return TriplesResponse(id=oid, total=total, triples=triples_out)
     
     return await asyncio.to_thread(_get_triples)
+
+
+@router.get("/{oid}/entities", response_model=EntitiesResponse)
+async def get_entities(oid: str):
+    result = ONTOLOGY_STORE.get(oid)
+    if not result:
+        raise HTTPException(status_code=404, detail="Ontology ID not found.")
+    ont, _ = result
+    
+    lock = ONTOLOGY_LOCKS.setdefault(oid, Lock())
+    
+    def _get_entities():
+        with lock:
+            classes = []
+            for cls in ont.classes_in_signature():
+                iri = cls.iri.as_str()
+                name = iri.split('#')[-1].split('/')[-1]
+                classes.append(EntityItem(iri=iri, name=name))
+            
+            individuals = []
+            for ind in ont.individuals_in_signature():
+                iri = ind.iri.as_str()
+                name = iri.split('#')[-1].split('/')[-1]
+                individuals.append(EntityItem(iri=iri, name=name))
+            
+            object_properties = []
+            for prop in ont.object_properties_in_signature():
+                iri = prop.iri.as_str()
+                name = iri.split('#')[-1].split('/')[-1]
+                object_properties.append(EntityItem(iri=iri, name=name))
+            
+            data_properties = []
+            for prop in ont.data_properties_in_signature():
+                iri = prop.iri.as_str()
+                name = iri.split('#')[-1].split('/')[-1]
+                data_properties.append(EntityItem(iri=iri, name=name))
+            
+            return EntitiesResponse(
+                classes=classes,
+                individuals=individuals,
+                object_properties=object_properties,
+                data_properties=data_properties
+            )
+    
+    return await asyncio.to_thread(_get_entities)
 

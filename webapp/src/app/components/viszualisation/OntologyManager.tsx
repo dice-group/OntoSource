@@ -1,32 +1,30 @@
 'use client'
 
 import { useEffect } from 'react'
-import { useSelectedOntologyId } from '../store/ontology-store'
+import { useSelectedOntologyId } from '../../store/ontology-store'
 import FileUpload from './FileUpload'
 import OntologyList from './OntologyList'
 import KnowledgeGraph from './KnowledgeGraph'
 import { useQuery } from '@tanstack/react-query'
-import createSummaryQueryOptions from '../queryOptions/createSummaryQueryOptions'
+import createSummaryQueryOptions from '../../queryOptions/createSummaryQueryOptions'
 
 export default function OntologyManager() {
   const selectedId = useSelectedOntologyId()
 
-  const {data} = useQuery({...createSummaryQueryOptions(selectedId), enabled: !!selectedId})
+  const {data} = useQuery({...createSummaryQueryOptions(selectedId || ''), enabled: !!selectedId})
 
   return (
-    <div className="min-h-screen bg-gray-50 py-8">
+    <div className=" bg-gray-50 py-8">
       <div className="w-3/5 mx-auto px-4 sm:px-6 lg:px-8">
-        {/* Header */}
+        {/* Page Header */}
         <div className="text-center mb-8">
           <h1 className="text-3xl font-bold text-gray-900 mb-2">
-            OntoSource
+            Knowledge Graph Visualization
           </h1>
-          <p className="text-lg text-gray-600">
-            Knowledge Graph Visualization for Ontologies
+          <p className="text-gray-600">
+            Upload and explore ontology knowledge graphs
           </p>
         </div>
-
-    
 
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
           {/* Left Panel - Upload and Ontology List */}

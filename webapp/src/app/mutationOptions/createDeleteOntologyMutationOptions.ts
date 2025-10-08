@@ -1,13 +1,17 @@
 import { mutationOptions } from "@tanstack/react-query";
 import { useQueryClient } from "@tanstack/react-query";
-import createSummaryAllQueryOptions from "../queryOptions/createSummaryAllQueryOptions";
+import { toast } from "sonner";
 
 export default function createDeleteOntologyMutationOptions() {
   const queryClient = useQueryClient()
   return mutationOptions({
     mutationFn: deleteOntology,
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: createSummaryAllQueryOptions().queryKey })
+      queryClient.invalidateQueries({refetchType: 'all'})
+      toast.success("Ontology deleted successfully!")
+    },
+    onError: (error: Error) => {
+      toast.error(error.message || "Failed to delete ontology")
     }
   })
 }

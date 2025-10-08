@@ -3,7 +3,9 @@ import { queryOptions } from "@tanstack/react-query";
 export default function createSummaryQueryOptions(id: string) {
   return queryOptions({
     queryKey: ['ontology-summary', id],
-    queryFn: () => getSummary(id)
+    queryFn: () => getSummary(id), 
+    staleTime: 0, // Always consider data stale
+    refetchOnMount: 'always' // Refetch when component mounts
   })
 }
 

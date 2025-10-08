@@ -2,7 +2,7 @@
 
 import { useMemo, useState } from 'react'
 import { useQuery } from "@tanstack/react-query"
-import { Triple } from '../store/ontology-store'
+import { Triple } from '../../store/ontology-store'
 import { ReactFlow, Background, Controls, BackgroundVariant } from '@xyflow/react'
 import '@xyflow/react/dist/style.css'
 import CustomEdge from './CustomEdge'
@@ -20,8 +20,8 @@ import {
   hash,
   shortenUri,
   getLayoutedElements
-} from '../utils/graph-utils'
-import createGraphDataQueryOptions from '../queryOptions/createGraphDataQueryOptions'
+} from '../../utils/graph-utils'
+import createGraphDataQueryOptions from '../../queryOptions/createGraphDataQueryOptions'
 
 // Define edge types for React Flow
 const edgeTypes = {
