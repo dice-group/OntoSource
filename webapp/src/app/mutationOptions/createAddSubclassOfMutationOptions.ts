@@ -4,41 +4,44 @@ import createSummaryAllQueryOptions from "../queryOptions/createSummaryAllQueryO
 import { toast } from "sonner";
 
 export default function createAddSubclassOfMutationOptions(ontologyId: string) {
-  const queryClient = useQueryClient()
+  const queryClient = useQueryClient();
   return mutationOptions({
-    mutationFn: (payload: AddSubclassOfPayload) => addSubclassOf(ontologyId, payload),
+    mutationFn: (payload: AddSubclassOfPayload) =>
+      addSubclassOf(ontologyId, payload),
     onSuccess: (data) => {
-      queryClient.invalidateQueries()
-      toast.success(data.message || "Subclass axiom added successfully!")
+      queryClient.invalidateQueries();
+      toast.success(data.message || "Subclass axiom added successfully!");
     },
     onError: (error: Error) => {
-      toast.error(error.message || "Failed to add subclass axiom")
-    }
-  })
+      toast.error(error.message || "Failed to add subclass axiom");
+    },
+  });
 }
 
 type AddSubclassOfPayload = {
-  subclass_name: string
-  subclass_namespace: string
-  superclass_name: string
-  superclass_namespace: string
-}
+  subclass_name: string;
+  subclass_namespace: string;
+  superclass_name: string;
+  superclass_namespace: string;
+};
 
 type OperationResponse = {
-  success: boolean
-  message: string
-}
+  success: boolean;
+  message: string;
+};
 
-const addSubclassOf = async (ontologyId: string, payload: AddSubclassOfPayload): Promise<OperationResponse> => {
+const addSubclassOf = async (
+  ontologyId: string,
+  payload: AddSubclassOfPayload,
+): Promise<OperationResponse> => {
   const response = await fetch(`/api/modify/${ontologyId}/subclass-of`, {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
     body: JSON.stringify(payload),
-  })
+  });
   if (!response.ok) {
-    const errorData = await response.json()
-    throw new Error(errorData.error || 'Failed to add subclass axiom')
+    const errorData = await response.json();
+    throw new Error(errorData.error || "Failed to add subclass axiom");
   }
-  return response.json()
-}
-
+  return response.json();
+};

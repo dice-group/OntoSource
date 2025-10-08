@@ -1,54 +1,58 @@
-'use client'
+"use client";
 
-import { useCallback, useState } from 'react'
-import { useAddOntology, useSetOntologyError } from '../../store/ontology-store'
-import { useMutation } from '@tanstack/react-query'
-import createFileUploadMutationOptions from '../../mutationOptions/createFileUploadMutationOptions'
-
+import { useCallback, useState } from "react";
+import {
+  useAddOntology,
+  useSetOntologyError,
+} from "../../store/ontology-store";
+import { useMutation } from "@tanstack/react-query";
+import createFileUploadMutationOptions from "../../mutationOptions/createFileUploadMutationOptions";
 
 interface FileUploadProps {
-  onUploadSuccess?: () => void
-  onUploadError?: (error: string) => void
+  onUploadSuccess?: () => void;
+  onUploadError?: (error: string) => void;
 }
 
-export default function FileUpload({ onUploadSuccess, onUploadError }: FileUploadProps) {
-  const [isUploading, setIsUploading] = useState(false)
-  const [dragOver, setDragOver] = useState(false)
-  
+export default function FileUpload({
+  onUploadSuccess,
+  onUploadError,
+}: FileUploadProps) {
+  const [isUploading, setIsUploading] = useState(false);
+  const [dragOver, setDragOver] = useState(false);
 
-  const {mutate} = useMutation(createFileUploadMutationOptions())
-  
+  const { mutate } = useMutation(createFileUploadMutationOptions());
+
   const handleDrop = (e: React.DragEvent) => {
-    e.preventDefault()
-    setDragOver(false)
-    
-    const files = Array.from(e.dataTransfer.files)
-    const file = files[0]
-    
+    e.preventDefault();
+    setDragOver(false);
+
+    const files = Array.from(e.dataTransfer.files);
+    const file = files[0];
+
     if (file) {
-      mutate(file)
+      mutate(file);
     }
-  }
+  };
 
   const handleFileInput = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0]
+    const file = e.target.files?.[0];
     if (file) {
-      mutate(file)
+      mutate(file);
     }
-  }
+  };
 
   return (
     <div className="w-full max-w-lg mx-auto">
       <div
         className={`
           border-2 border-dashed rounded-lg p-8 text-center transition-colors
-          ${dragOver ? 'border-blue-400 bg-blue-50' : 'border-gray-300'}
-          ${isUploading ? 'opacity-50 pointer-events-none' : 'hover:border-gray-400'}
+          ${dragOver ? "border-blue-400 bg-blue-50" : "border-gray-300"}
+          ${isUploading ? "opacity-50 pointer-events-none" : "hover:border-gray-400"}
         `}
         onDrop={handleDrop}
         onDragOver={(e) => {
-          e.preventDefault()
-          setDragOver(true)
+          e.preventDefault();
+          setDragOver(true);
         }}
         onDragLeave={() => setDragOver(false)}
       >
@@ -78,7 +82,8 @@ export default function FileUpload({ onUploadSuccess, onUploadError }: FileUploa
               Upload Ontology File
             </p>
             <p className="text-sm text-gray-500 mb-4">
-              Drag and drop your OWL, RDF, TTL, or N3 file here, or click to browse
+              Drag and drop your OWL, RDF, TTL, or N3 file here, or click to
+              browse
             </p>
             <label className="cursor-pointer inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500">
               <input
@@ -97,5 +102,5 @@ export default function FileUpload({ onUploadSuccess, onUploadError }: FileUploa
         )}
       </div>
     </div>
-  )
-} 
+  );
+}

@@ -4,39 +4,41 @@ import createSummaryAllQueryOptions from "../queryOptions/createSummaryAllQueryO
 import { toast } from "sonner";
 
 export default function createAddClassMutationOptions(ontologyId: string) {
-  const queryClient = useQueryClient()
+  const queryClient = useQueryClient();
   return mutationOptions({
     mutationFn: (payload: AddClassPayload) => addClass(ontologyId, payload),
     onSuccess: (data) => {
-      queryClient.invalidateQueries()
-      toast.success(data.message || "Class added successfully!")
+      queryClient.invalidateQueries();
+      toast.success(data.message || "Class added successfully!");
     },
     onError: (error: Error) => {
-      toast.error(error.message || "Failed to add class")
-    }
-  })
+      toast.error(error.message || "Failed to add class");
+    },
+  });
 }
 
 type AddClassPayload = {
-  namespace: string
-  class_name: string
-}
+  namespace: string;
+  class_name: string;
+};
 
 type OperationResponse = {
-  success: boolean
-  message: string
-}
+  success: boolean;
+  message: string;
+};
 
-const addClass = async (ontologyId: string, payload: AddClassPayload): Promise<OperationResponse> => {
+const addClass = async (
+  ontologyId: string,
+  payload: AddClassPayload,
+): Promise<OperationResponse> => {
   const response = await fetch(`/api/modify/${ontologyId}/class`, {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
     body: JSON.stringify(payload),
-  })
+  });
   if (!response.ok) {
-    const errorData = await response.json()
-    throw new Error(errorData.error || 'Failed to add class')
+    const errorData = await response.json();
+    throw new Error(errorData.error || "Failed to add class");
   }
-  return response.json()
-}
-
+  return response.json();
+};

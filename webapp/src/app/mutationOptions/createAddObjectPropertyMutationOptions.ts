@@ -3,40 +3,45 @@ import { useQueryClient } from "@tanstack/react-query";
 import createSummaryAllQueryOptions from "../queryOptions/createSummaryAllQueryOptions";
 import { toast } from "sonner";
 
-export default function createAddObjectPropertyMutationOptions(ontologyId: string) {
-  const queryClient = useQueryClient()
+export default function createAddObjectPropertyMutationOptions(
+  ontologyId: string,
+) {
+  const queryClient = useQueryClient();
   return mutationOptions({
-    mutationFn: (payload: AddObjectPropertyPayload) => addObjectProperty(ontologyId, payload),
+    mutationFn: (payload: AddObjectPropertyPayload) =>
+      addObjectProperty(ontologyId, payload),
     onSuccess: (data) => {
-      queryClient.invalidateQueries()
-      toast.success(data.message || "Object property added successfully!")
+      queryClient.invalidateQueries();
+      toast.success(data.message || "Object property added successfully!");
     },
     onError: (error: Error) => {
-      toast.error(error.message || "Failed to add object property")
-    }
-  })
+      toast.error(error.message || "Failed to add object property");
+    },
+  });
 }
 
 type AddObjectPropertyPayload = {
-  namespace: string
-  property_name: string
-}
+  namespace: string;
+  property_name: string;
+};
 
 type OperationResponse = {
-  success: boolean
-  message: string
-}
+  success: boolean;
+  message: string;
+};
 
-const addObjectProperty = async (ontologyId: string, payload: AddObjectPropertyPayload): Promise<OperationResponse> => {
+const addObjectProperty = async (
+  ontologyId: string,
+  payload: AddObjectPropertyPayload,
+): Promise<OperationResponse> => {
   const response = await fetch(`/api/modify/${ontologyId}/object-property`, {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
     body: JSON.stringify(payload),
-  })
+  });
   if (!response.ok) {
-    const errorData = await response.json()
-    throw new Error(errorData.error || 'Failed to add object property')
+    const errorData = await response.json();
+    throw new Error(errorData.error || "Failed to add object property");
   }
-  return response.json()
-}
-
+  return response.json();
+};

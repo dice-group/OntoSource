@@ -4,27 +4,27 @@ import createSummaryAllQueryOptions from "../queryOptions/createSummaryAllQueryO
 import { toast } from "sonner";
 
 export default function createFileUploadMutationOptions() {
-  const queryClient = useQueryClient()
+  const queryClient = useQueryClient();
   return mutationOptions({
     mutationFn: uploadOntology,
     onSuccess: () => {
-      queryClient.invalidateQueries()
-      toast.success("Ontology file uploaded successfully!")
+      queryClient.invalidateQueries();
+      toast.success("Ontology file uploaded successfully!");
     },
     onError: (error: Error) => {
-      toast.error(error.message || "Failed to upload ontology file")
-    }
-  })
+      toast.error(error.message || "Failed to upload ontology file");
+    },
+  });
 }
 
 const uploadOntology = async (file: File) => {
-  const formData = new FormData()
-  formData.append('file', file)
+  const formData = new FormData();
+  formData.append("file", file);
 
-  const response = await fetch('/api/ontology/upload', {
-    method: 'POST',
+  const response = await fetch("/api/ontology/upload", {
+    method: "POST",
     body: formData,
-  })
+  });
 
-  return response.json()
-}
+  return response.json();
+};
