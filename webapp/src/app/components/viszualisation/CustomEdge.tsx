@@ -17,11 +17,12 @@ export default function CustomEdge({
   targetPosition,
   style = {},
   markerEnd,
+  markerStart,
   label,
   labelStyle,
   data,
 }: EdgeProps) {
-  const offset = data?.offset || 0;
+  const offset: number = (data?.offset as number) || 0;
 
   // Calculate control points for curved edges with offset
   let edgePath: string;
@@ -69,7 +70,7 @@ export default function CustomEdge({
 
   return (
     <>
-      <BaseEdge path={edgePath} markerEnd={markerEnd} style={style} />
+      <BaseEdge path={edgePath} markerEnd={markerEnd} markerStart={markerStart} style={style} />
       {label && (
         <EdgeLabelRenderer>
           <div

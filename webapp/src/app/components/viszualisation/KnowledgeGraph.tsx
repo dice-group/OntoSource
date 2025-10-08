@@ -195,14 +195,11 @@ export default function KnowledgeGraph({
         }
       });
 
-      // Second pass: filter triples by TBox/ABox/Literals/hidden types/hidden relations before limiting
+      // Second pass: filter triples by TBox/ABox/Literals/hidden types (but NOT by hidden relations yet)
       const filteredTriples: Triple[] = [];
 
       allTriples.forEach((t: Triple) => {
         const { s, p, o } = t;
-
-        // Filter by hidden relations first
-        if (hiddenRelations.has(p)) return;
 
         // Determine subject type and box
         const subjectType = typeMap.get(s) || getNodeType(s);
@@ -261,6 +258,7 @@ export default function KnowledgeGraph({
         propertyColorMap.set(t.p, color);
       });
 
+      // First, collect ALL nodes from triples (regardless of relation filtering)
       triples.forEach((t: Triple, i: number) => {
         const { s, p, o } = t;
 
@@ -305,20 +303,78 @@ export default function KnowledgeGraph({
             color: getNodeColor(objectType),
           });
         }
+      });
 
-        // Only render a subset of edges for performance
-        const edgeColor = getLinkColor(p, propertyColorMap);
+      // Now collect edges, filtering by hidden relations
+      // First, build a map to detect bidirectional edges
+      const edgeMap = new Map<string, { 
+        source: string; 
+        target: string; 
+        predicate: string; 
+        index: number;
+        objectId: string;
+      }>();
+      const bidirectionalEdges = new Set<string>();
+
+      triples.forEach((t: Triple, i: number) => {
+        const { s, p, o } = t;
+
+        // Skip edges for hidden relations
+        if (hiddenRelations.has(p)) return;
+
+        let objectId: string;
+        if (typeof o === "string") {
+          objectId = o;
+        } else {
+          objectId = `lit_${hash(o.value)}_${i}`;
+        }
+
+        // Create edge keys for both directions
+        const forwardKey = `${s}|${p}|${objectId}`;
+        const reverseKey = `${objectId}|${p}|${s}`;
+
+        // Check if reverse edge already exists
+        if (edgeMap.has(reverseKey)) {
+          // Mark both as bidirectional
+          bidirectionalEdges.add(forwardKey);
+          bidirectionalEdges.add(reverseKey);
+        }
+
+        edgeMap.set(forwardKey, { source: s, target: objectId, predicate: p, index: i, objectId });
+      });
+
+      // Now create edges, skipping the reverse direction of bidirectional edges
+      const processedBidirectional = new Set<string>();
+
+      edgeMap.forEach((edgeInfo, edgeKey) => {
+        const { source, target, predicate, index, objectId } = edgeInfo;
+        const reverseKey = `${target}|${predicate}|${source}`;
+
+        // If this is bidirectional and we've already processed its reverse, skip it
+        if (bidirectionalEdges.has(edgeKey) && processedBidirectional.has(reverseKey)) {
+          return;
+        }
+
+        const edgeColor = getLinkColor(predicate, propertyColorMap);
+        const isBidirectional = bidirectionalEdges.has(edgeKey);
+
         edgesAcc.push({
-          id: `e_${hash(`${s}|${p}|${objectId}`)}_${i}`,
-          source: s,
+          id: `e_${hash(edgeKey)}_${index}`,
+          source: source,
           target: objectId,
-          label: shortenUri(p),
+          label: shortenUri(predicate),
           type: "custom",
           style: { strokeWidth: 2, stroke: edgeColor },
           labelStyle: { fontSize: 12, fill: "#334155", fontWeight: 500 },
           markerEnd: { type: "arrowclosed", color: edgeColor },
-          data: { predicate: p }, // Store the predicate for filtering
+          markerStart: isBidirectional ? { type: "arrowclosed", color: edgeColor } : undefined,
+          data: { predicate: predicate, isBidirectional }, // Store the predicate for filtering
         });
+
+        // Mark as processed if bidirectional
+        if (isBidirectional) {
+          processedBidirectional.add(edgeKey);
+        }
       });
 
       // Filter nodes based on TBox/ABox visibility settings and hidden node types
@@ -646,25 +702,22 @@ export default function KnowledgeGraph({
             id="triple-limit"
             type="range"
             min="100"
-            max={filteredTotal || 1000}
+            max={filteredTotal || 100}
             step="100"
-            value={Math.min(maxTriplesToDisplay, filteredTotal || 1000)}
+            value={Math.min(maxTriplesToDisplay, filteredTotal || 100)}
             onChange={(e) => setMaxTriplesToDisplay(Number(e.target.value))}
             className="flex-1 h-2 bg-gray-200 rounded-lg appearance-none cursor-pointer accent-blue-600"
           />
           <input
             type="number"
-            min="100"
-            max={filteredTotal || 1000}
-            step="100"
+            min="1"
+            step="1"
             value={maxTriplesToDisplay}
             onChange={(e) => {
-              const maxValue = filteredTotal || 1000;
-              const newValue = Math.min(
-                Math.max(100, Number(e.target.value)),
-                maxValue,
-              );
-              setMaxTriplesToDisplay(newValue);
+              const newValue = Number(e.target.value);
+              if (!isNaN(newValue) && newValue > 0) {
+                setMaxTriplesToDisplay(newValue);
+              }
             }}
             className="w-24 px-2 py-1 text-sm text-gray-900 font-semibold border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
           />
@@ -770,12 +823,11 @@ export default function KnowledgeGraph({
               setTimeout(() => instance.fitView({ padding: 0.2 }), 50);
             }}
             proOptions={{ hideAttribution: true }}
-            minZoom={0.1}
-            maxZoom={2}
-            nodesDraggable={true}
+            minZoom={0.01}
+            maxZoom={5}
             nodesConnectable={false}
             elementsSelectable={true}
-            selectNodesOnDrag={false}
+            
             panOnDrag={true}
             zoomOnScroll={true}
             preventScrolling={true}
