@@ -15,7 +15,6 @@ import createAddDataPropertyAssertionMutationOptions from "../mutationOptions/cr
 import createAddSubclassOfMutationOptions from "../mutationOptions/createAddSubclassOfMutationOptions";
 import createSaveOntologyMutationOptions from "../mutationOptions/createSaveOntologyMutationOptions";
 import { Ontology, useSelectedOntologyId, useSetSelectedOntology } from "../store/ontology-store";
-import Header from "../components/Header";
 
 type AxiomType =
   | "class"
@@ -295,8 +294,7 @@ function EditPageContent() {
   };
 
   return (
-    <div className="min-h-screen bg-gray-50">
-      <Header />
+    <div className=" bg-gray-50">
       <div className="max-w-7xl mx-auto p-8">
         <div className="mb-8">
           <h1 className="text-3xl font-bold text-gray-900 mb-2">

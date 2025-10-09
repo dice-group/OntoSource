@@ -12,16 +12,18 @@ export interface NeuralOntologyListResponse {
 export const createNeuralOntologyListQueryOptions = () => {
   return queryOptions<NeuralOntologyListResponse>({
     queryKey: ["neural-ontologies"],
-    queryFn: async () => {
-      const response = await fetch("/api/neural-reasoning/list");
-
-      if (!response.ok) {
-        const error = await response.json();
-        throw new Error(error.error || "Failed to list neural ontologies");
-      }
-
-      return response.json();
-    },
+    queryFn: getNeuralOntologyList,
   });
 };
+
+const getNeuralOntologyList = async () => {
+  const response = await fetch("/api/neural-reasoning/list");
+  if (!response.ok) {
+    const error = await response.json();
+    throw new Error(error.error || "Failed to list neural ontologies");
+  }
+
+  return response.json();
+};
+
 

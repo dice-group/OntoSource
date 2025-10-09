@@ -28,23 +28,24 @@ export const createSuperClassesQueryOptions = (
 ) => {
   return queryOptions<SuperClassesResponse>({
     queryKey: ["super-classes", ontologyId, request],
-    queryFn: async () => {
-      const response = await fetch(`/api/reasoning/${ontologyId}/super-classes`, {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify(request),
-      });
-
-      if (!response.ok) {
-        const error = await response.json();
-        throw new Error(error.error || "Failed to get super classes");
-      }
-
-      return response.json();
-    },
+    queryFn: () => getSuperClasses(ontologyId, request),
     enabled,
   });
 };
 
+const getSuperClasses = async (ontologyId: string, request: SuperClassesRequest) => {
+  const response = await fetch(`/api/reasoning/${ontologyId}/super-classes`, {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+    },
+    body: JSON.stringify(request),
+  });
+
+  if (!response.ok) {
+    const error = await response.json();
+    throw new Error(error.error || "Failed to get super classes");
+  }
+
+  return response.json();
+};
