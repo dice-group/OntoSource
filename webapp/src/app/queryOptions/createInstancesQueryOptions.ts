@@ -29,23 +29,25 @@ export const createInstancesQueryOptions = (
 ) => {
   return queryOptions<InstancesResponse>({
     queryKey: ["instances", ontologyId, request],
-    queryFn: async () => {
-      const response = await fetch(`/api/reasoning/${ontologyId}/instances`, {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify(request),
-      });
-
-      if (!response.ok) {
-        const error = await response.json();
-        throw new Error(error.error || "Failed to get instances");
-      }
-
-      return response.json();
-    },
+    queryFn: () => getInstances(ontologyId, request),
     enabled,
   });
 };
 
+
+const getInstances = async (ontologyId: string, request: InstancesRequest) => {
+  const response = await fetch(`/api/reasoning/${ontologyId}/instances`, {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+    },
+    body: JSON.stringify(request),
+  });
+
+  if (!response.ok) {
+    const error = await response.json();
+    throw new Error(error.error || "Failed to get instances");
+  }
+
+  return response.json();
+};
