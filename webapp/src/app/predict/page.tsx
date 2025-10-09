@@ -7,7 +7,7 @@ import createOntologyEntitiesQueryOptions from "@/app/queryOptions/createOntolog
 import { createInstancesQueryOptions } from "@/app/queryOptions/createInstancesQueryOptions";
 import { createNeuralOntologyListQueryOptions } from "@/app/queryOptions/createNeuralOntologyListQueryOptions";
 import { createNeuralInstancesQueryOptions } from "@/app/queryOptions/createNeuralInstancesQueryOptions";
-import { useCreateNeuralOntology } from "@/app/mutationOptions/createNeuralOntologyMutationOptions";
+import createNeuralOntologyMutationOptions from "@/app/mutationOptions/createNeuralOntologyMutationOptions";
 import { useSelectedOntologyId, useSetSelectedOntology } from "@/app/store/ontology-store";
 import Header from "@/app/components/Header";
 
@@ -50,7 +50,7 @@ export default function PredictPage() {
   const { data: neuralOntologies } = useQuery(createNeuralOntologyListQueryOptions());
   
   // Create neural ontology mutation
-  const createNeuralOntology = useCreateNeuralOntology();
+  const createNeuralOntology = useMutation(createNeuralOntologyMutationOptions());
   
   // Determine which expression to use
   const activeExpression = useCustomExpression ? customExpression : selectedClass;

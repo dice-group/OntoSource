@@ -26,23 +26,24 @@ export const createTypesQueryOptions = (
 ) => {
   return queryOptions<TypesResponse>({
     queryKey: ["types", ontologyId, request],
-    queryFn: async () => {
-      const response = await fetch(`/api/reasoning/${ontologyId}/types`, {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify(request),
-      });
-
-      if (!response.ok) {
-        const error = await response.json();
-        throw new Error(error.error || "Failed to get types");
-      }
-
-      return response.json();
-    },
+    queryFn: () => getTypes(ontologyId, request),
     enabled,
   });
 };
 
+const getTypes = async (ontologyId: string, request: TypesRequest) => {
+  const response = await fetch(`/api/reasoning/${ontologyId}/types`, {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+    },
+    body: JSON.stringify(request),
+  });
+
+  if (!response.ok) {
+    const error = await response.json();
+    throw new Error(error.error || "Failed to get types");
+  }
+
+  return response.json();
+};

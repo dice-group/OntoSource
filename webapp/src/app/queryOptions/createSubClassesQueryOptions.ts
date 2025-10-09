@@ -28,23 +28,24 @@ export const createSubClassesQueryOptions = (
 ) => {
   return queryOptions<SubClassesResponse>({
     queryKey: ["sub-classes", ontologyId, request],
-    queryFn: async () => {
-      const response = await fetch(`/api/reasoning/${ontologyId}/sub-classes`, {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify(request),
-      });
-
-      if (!response.ok) {
-        const error = await response.json();
-        throw new Error(error.error || "Failed to get sub classes");
-      }
-
-      return response.json();
-    },
+    queryFn: () => getSubClasses(ontologyId, request),
     enabled,
   });
 };
 
+const getSubClasses = async (ontologyId: string, request: SubClassesRequest) => {
+  const response = await fetch(`/api/reasoning/${ontologyId}/sub-classes`, {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+    },
+    body: JSON.stringify(request),
+  });
+
+  if (!response.ok) {
+    const error = await response.json();
+    throw new Error(error.error || "Failed to get sub classes");
+  }
+
+  return response.json();
+};
