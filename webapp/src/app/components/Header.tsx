@@ -1,7 +1,8 @@
 "use client";
 import { usePathname } from "next/navigation";
 import Link from "next/link";
-import { BarChart3, Edit3, Brain } from "lucide-react";
+import { Edit3, Brain } from "lucide-react";
+import Logo from "./Logo";
 
 export default function Header() {
   const pathname = usePathname();
@@ -42,23 +43,11 @@ export default function Header() {
   ];
 
   return (
-    <header className="sticky top-0 z-50 w-full border-b border-gray-200 bg-white/80 backdrop-blur-md">
+    <header className="sticky top-0 z-50 w-full border-b border-gray-200 bg-gradient-to-br from-blue-50 via-white to-slate-50 backdrop-blur-md">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="flex h-16 items-center justify-between">
           {/* Logo/Brand */}
-          <Link href="/" className="flex items-center gap-3 group">
-            <div className="flex items-center justify-center w-9 h-9 rounded-lg bg-gradient-to-br from-blue-600 to-purple-600 text-white font-bold text-lg shadow-sm group-hover:shadow-md transition-shadow duration-200">
-              O
-            </div>
-            <div className="flex flex-col">
-              <h1 className="text-lg font-semibold text-gray-900 leading-tight group-hover:text-blue-600 transition-colors duration-200">
-                OntoSource
-              </h1>
-              <p className="text-xs text-gray-500 leading-tight">
-                Ontology Manager
-              </p>
-            </div>
-          </Link>
+          <Logo />
 
           {/* Navigation */}
           <nav

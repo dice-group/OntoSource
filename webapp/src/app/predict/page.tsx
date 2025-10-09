@@ -9,7 +9,6 @@ import { createNeuralOntologyListQueryOptions } from "@/app/queryOptions/createN
 import { createNeuralInstancesQueryOptions } from "@/app/queryOptions/createNeuralInstancesQueryOptions";
 import createNeuralOntologyMutationOptions from "@/app/mutationOptions/createNeuralOntologyMutationOptions";
 import { useSelectedOntologyId, useSetSelectedOntology } from "@/app/store/ontology-store";
-import Header from "@/app/components/Header";
 
 export default function PredictPage() {
   const queryClient = useQueryClient();
@@ -145,9 +144,7 @@ export default function PredictPage() {
     : structuralError;
 
   return (
-    <div className=" bg-gray-50">
-      <Header />
-      <div className="min-h-screen bg-gradient-to-br from-gray-50 to-gray-100 p-8">
+    <div className=" bg-gray-50 p-8">
         <div className="max-w-7xl mx-auto">
         <div className="mb-8">
           <h1 className="text-4xl font-bold text-gray-900 mb-2">Instance Prediction</h1>
@@ -740,7 +737,6 @@ export default function PredictPage() {
             </div>
           </div>
         </div>
-      </div>
       </div>
     </div>
   );
