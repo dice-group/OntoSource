@@ -81,11 +81,3 @@ The webapp will be available at `http://localhost:3000`.
 - `/reasoning` - Perform logical reasoning (instances, sub/super classes, types)
 - `/neural-reasoning` - Neural embedding-based reasoning
 
-## Generate Dependencies
-
-To regenerate Python dependencies:
-
-```bash
-conda activate ontosource
-pip freeze > requirements.txt
-```
