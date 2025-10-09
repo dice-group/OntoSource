@@ -10,70 +10,15 @@ from owlapy.owl_reasoner import EBR
 from owlapy.owl_ontology import NeuralOntology
 from owlapy.class_expression import OWLClass, OWLClassExpression
 from owlapy.iri import IRI
-from owlapy import dl_to_owl_expression, manchester_to_owl_expression
 
 from store import ONTOLOGY_STORE, ONTOLOGY_LOCKS
+from utils import build_class_expression
 
 router = APIRouter(prefix="/neural-reasoning", tags=["neural-reasoning"])
 
 # Store for neural ontologies (separate from regular ontologies)
 NEURAL_ONTOLOGY_STORE = {}
 NEURAL_ONTOLOGY_LOCKS = {}
-
-
-def build_class_expression(
-    expression_str: str, 
-    neural_ontology: NeuralOntology,
-    syntax: Literal["iri", "dl", "manchester"] = "iri"
-) -> OWLClassExpression:
-    """
-    Build an OWL class expression from a string representation.
-    
-    Supports three syntax types:
-    - "iri": Simple class IRI (e.g., "http://example.com/family#Person")
-    - "dl": Description Logic syntax (e.g., "∃ hasChild.male")
-    - "manchester": Manchester syntax (e.g., "female and (hasChild max 2 person)")
-    
-    Args:
-        expression_str: The class expression as a string
-        neural_ontology: The Neural OWL ontology for namespace resolution
-        syntax: The syntax type to use for parsing
-        
-    Returns:
-        An OWLClassExpression object
-        
-    Raises:
-        ValueError: If the expression cannot be parsed
-    """
-    try:
-        if syntax == "iri":
-            # Simple IRI - create a named class
-            class_iri = IRI.create(expression_str)
-            return OWLClass(class_iri)
-        elif syntax == "dl":
-            # Description Logic syntax
-            # Get the namespace from the ontology IRI
-            try:
-                namespace = neural_ontology.get_ontology_id().get_ontology_iri().as_str() + "#"
-            except:
-                # Fallback to a default namespace if ontology IRI is not available
-                namespace = "http://www.example.org/ontology#"
-            return dl_to_owl_expression(expression_str, namespace)
-        elif syntax == "manchester":
-            # Manchester syntax
-            # Get the namespace from the ontology IRI
-            try:
-                namespace = neural_ontology.get_ontology_id().get_ontology_iri().as_str() + "#"
-            except:
-                # Fallback to a default namespace if ontology IRI is not available
-                namespace = "http://www.example.org/ontology#"
-            return manchester_to_owl_expression(expression_str, namespace)
-        else:
-            raise ValueError(f"Unknown syntax type: {syntax}")
-    except ValueError:
-        raise
-    except Exception as e:
-        raise ValueError(f"Failed to parse class expression '{expression_str}' with syntax '{syntax}': {str(e)}")
 
 
 class IndividualItem(BaseModel):
@@ -146,12 +91,9 @@ async def create_neural_ontology(request: CreateNeuralOntologyRequest):
                 
                 try:
                     ont.save(IRI.create(tmp_path))
-                    
-                    # Create neural ontology and train
-                    # Note: Training requires additional parameters like model type, etc.
-                    # For now, we'll create it from the path and assume training happens separately
+                    # Training with default parameters
                     neural_ont = NeuralOntology(path_neural_embedding=tmp_path, train_if_not_exists=True)
-                    message = "Neural ontology created. Training would happen here (not yet implemented)."
+                    message = "Neural ontology created."
                 finally:
                     try:
                         os.unlink(tmp_path)
@@ -243,6 +185,13 @@ async def get_neural_instances(neural_oid: str, request: NeuralInstancesRequest)
         raise HTTPException(status_code=404, detail="Neural Ontology ID not found.")
     
     neural_ont, ontology_id = result
+    
+    # Get the underlying regular ontology for namespace resolution
+    ontology_result = ONTOLOGY_STORE.get(ontology_id)
+    if ontology_result is None:
+        raise HTTPException(status_code=404, detail="Underlying Ontology ID not found.")
+    
+    ont, _ = ontology_result
     lock = NEURAL_ONTOLOGY_LOCKS.setdefault(neural_oid, asyncio.Lock())
     
     async def _get_instances():
@@ -252,18 +201,19 @@ async def get_neural_instances(neural_oid: str, request: NeuralInstancesRequest)
                 reasoner = EBR(ontology=neural_ont)
                 
                 # Parse the class expression with support for complex expressions
+                # Use the underlying regular ontology for namespace resolution
                 try:
                     class_expression = build_class_expression(
                         request.class_expression,
-                        neural_ont,
+                        ont,  # Use regular ontology for namespace resolution
                         request.syntax
                     )
                 except ValueError as e:
                     raise HTTPException(status_code=400, detail=str(e))
                 
+                print(class_expression)
                 # Get instances
                 instances = reasoner.instances(class_expression)
-                
                 # Convert to response format
                 individuals = []
                 for ind in instances:
