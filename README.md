@@ -8,7 +8,23 @@ An innovative web-based platform for collaborative ontology engineering and know
 - Node.js 18+
 - npm or pnpm
 
-## Setup
+## Quick Start
+
+Run the entire project with a single command:
+
+```bash
+./start.sh
+```
+
+This script will:
+- Create the conda environment if it doesn't exist
+- Install all dependencies
+- Start both backend and frontend services
+- Display all service URLs
+
+Press `Ctrl+C` to stop all services.
+
+## Manual Setup
 
 ### Backend (FastAPI)
 
