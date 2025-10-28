@@ -24,8 +24,8 @@ export type GenerateOntologyRequest = {
   temperature?: number;
   seed?: number;
   cache?: boolean;
-  cache_in_memory?: boolean;
   enable_logging?: boolean;
+  max_tokens?: number;
 };
 
 export type GenerateOntologyJobResponse = {

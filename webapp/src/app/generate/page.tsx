@@ -26,11 +26,11 @@ export default function GeneratePage() {
   const [generateTypes, setGenerateTypes] = useState(false);
   const [extractSplTriples, setExtractSplTriples] = useState(false);
   const [createClassHierarchy, setCreateClassHierarchy] = useState(false);
-  const [temperature, setTemperature] = useState(0.1);
+  const [temperature, setTemperature] = useState(1.0);
   const [seed, setSeed] = useState(42);
   const [cache, setCache] = useState(false);
-  const [cacheInMemory, setCacheInMemory] = useState(false);
   const [enableLogging, setEnableLogging] = useState(false);
+  const [maxTokens, setMaxTokens] = useState(16000);
   
   // Job tracking
   const [activeJobId, setActiveJobId] = useState<string | null>(null);
@@ -89,8 +89,8 @@ export default function GeneratePage() {
         temperature,
         seed,
         cache,
-        cache_in_memory: cacheInMemory,
         enable_logging: enableLogging,
+        max_tokens: maxTokens,
       });
 
       // Store job ID to start polling
@@ -286,6 +286,22 @@ export default function GeneratePage() {
                     </div>
                   </div>
 
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-2">
+                      Max Tokens:
+                    </label>
+                    <input
+                      type="number"
+                      min="1"
+                      value={maxTokens}
+                      onChange={(e) => setMaxTokens(parseInt(e.target.value))}
+                      className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent text-gray-900"
+                    />
+                    <p className="mt-1 text-xs text-gray-600">
+                      Maximum number of tokens for the model to generate
+                    </p>
+                  </div>
+
                   <div className="space-y-3">
                     <label className="flex items-center space-x-2">
                       <input
@@ -325,16 +341,6 @@ export default function GeneratePage() {
                         className="rounded border-gray-300 text-blue-600 focus:ring-blue-500"
                       />
                       <span className="text-sm text-gray-700">Enable Cache</span>
-                    </label>
-
-                    <label className="flex items-center space-x-2">
-                      <input
-                        type="checkbox"
-                        checked={cacheInMemory}
-                        onChange={(e) => setCacheInMemory(e.target.checked)}
-                        className="rounded border-gray-300 text-blue-600 focus:ring-blue-500"
-                      />
-                      <span className="text-sm text-gray-700">Cache in Memory</span>
                     </label>
 
                     <label className="flex items-center space-x-2">

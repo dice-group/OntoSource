@@ -33,8 +33,8 @@ class GenerateOntologyRequest(BaseModel):
 	temperature: float = 0.1
 	seed: int = 42
 	cache: bool = False
-	cache_in_memory: bool = False
 	enable_logging: bool = False
+	max_tokens: int = 16000
 
 class GenerateOntologyJobResponse(BaseModel):
 	job_id: str
@@ -85,8 +85,8 @@ async def _generate_ontology_background(job_id: str, request: GenerateOntologyRe
 				temperature=request.temperature,
 				seed=request.seed,
 				cache=request.cache,
-				cache_in_memory=request.cache_in_memory,
-				enable_logging=request.enable_logging
+				enable_logging=request.enable_logging,
+				max_tokens=request.max_tokens
 			)
 			
 			# Generate the ontology from text
