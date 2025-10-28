@@ -7,11 +7,11 @@ export default function createNeuralOntologyMutationOptions() {
   return mutationOptions({
     mutationFn: createNeuralOntology,
     onSuccess: (data) => {
-      queryClient.invalidateQueries();
-      toast.success(data.message || "Neural ontology created successfully!");
+      // Job started successfully - don't show final success yet
+      toast.info(data.message || "Neural ontology creation started...");
     },
     onError: (error: Error) => {
-      toast.error(error.message || "Failed to create neural ontology");
+      toast.error(error.message || "Failed to start neural ontology creation");
     },
   });
 }
@@ -23,8 +23,8 @@ type CreateNeuralOntologyRequest = {
 };
 
 type CreateNeuralOntologyResponse = {
-  neural_ontology_id: string;
-  ontology_id: string;
+  job_id: string;
+  status: string;
   message: string;
 };
 

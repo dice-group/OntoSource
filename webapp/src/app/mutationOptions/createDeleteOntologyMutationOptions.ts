@@ -1,13 +1,17 @@
 import { mutationOptions } from "@tanstack/react-query";
 import { useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
+import { useRemoveOntology } from "../store/ontology-store";
 
 export default function createDeleteOntologyMutationOptions() {
   const queryClient = useQueryClient();
+  const removeOntology = useRemoveOntology();
   return mutationOptions({
     mutationFn: deleteOntology,
-    onSuccess: () => {
+    onSuccess: (id: string) => {
+      removeOntology(id);
       queryClient.invalidateQueries({ refetchType: "all" });
+     
       toast.success("Ontology deleted successfully!");
     },
     onError: (error: Error) => {

@@ -431,12 +431,6 @@ function EditPageContent() {
                 </p>
               ) : (
                 <>
-                  <div className="mb-4 p-3 bg-blue-50 border border-blue-200 rounded-md">
-                    <p className="text-sm text-blue-800">
-                      <strong>Note:</strong> Namespaces should end with #, /, or
-                      : (they will be auto-corrected with # if missing)
-                    </p>
-                  </div>
                   <div className="mb-6">
                     <label className="block text-sm font-medium text-gray-700 mb-2">
                       Axiom Type

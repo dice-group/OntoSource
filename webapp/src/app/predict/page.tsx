@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import createSummaryAllQueryOptions from "@/app/queryOptions/createSummaryAllQueryOptions";
 import createOntologyEntitiesQueryOptions from "@/app/queryOptions/createOntologyEntitiesQueryOptions";
@@ -8,7 +8,9 @@ import { createInstancesQueryOptions } from "@/app/queryOptions/createInstancesQ
 import { createNeuralOntologyListQueryOptions } from "@/app/queryOptions/createNeuralOntologyListQueryOptions";
 import { createNeuralInstancesQueryOptions } from "@/app/queryOptions/createNeuralInstancesQueryOptions";
 import createNeuralOntologyMutationOptions from "@/app/mutationOptions/createNeuralOntologyMutationOptions";
+import { createNeuralJobStatusQueryOptions } from "@/app/queryOptions/createNeuralJobStatusQueryOptions";
 import { useSelectedOntologyId, useSetSelectedOntology } from "@/app/store/ontology-store";
+import { toast } from "sonner";
 
 export default function PredictPage() {
   const queryClient = useQueryClient();
@@ -33,6 +35,7 @@ export default function PredictPage() {
   // State for neural ontology
   const [selectedNeuralOntology, setSelectedNeuralOntology] = useState<string>("");
   const [showNeuralCreate, setShowNeuralCreate] = useState(false);
+  const [activeJobId, setActiveJobId] = useState<string | null>(null);
   
   // State for triggering predictions
   const [shouldPredict, setShouldPredict] = useState(false);
@@ -50,6 +53,30 @@ export default function PredictPage() {
   
   // Create neural ontology mutation
   const createNeuralOntology = useMutation(createNeuralOntologyMutationOptions());
+  
+  // Poll job status when we have an active job
+  const { data: jobStatus } = useQuery(
+    createNeuralJobStatusQueryOptions(activeJobId || "", !!activeJobId)
+  );
+  
+  // Handle job completion
+  useEffect(() => {
+    if (!jobStatus) return;
+    
+    if (jobStatus.status === "completed") {
+      if (jobStatus.neural_ontology_id) {
+        setSelectedNeuralOntology(jobStatus.neural_ontology_id);
+        queryClient.invalidateQueries({ queryKey: ["neural-ontologies"] });
+        toast.success(jobStatus.message || "Neural ontology created successfully!");
+      }
+      setActiveJobId(null);
+      setShowNeuralCreate(false);
+    } else if (jobStatus.status === "failed") {
+      toast.error(jobStatus.error || "Failed to create neural ontology");
+      setActiveJobId(null);
+      setShowNeuralCreate(false);
+    }
+  }, [jobStatus, queryClient]);
   
   // Determine which expression to use
   const activeExpression = useCustomExpression ? customExpression : selectedClass;
@@ -103,12 +130,11 @@ export default function PredictPage() {
         retrain: true,
       });
       
-      queryClient.invalidateQueries({ queryKey: ["neural-ontologies"] });
-      setSelectedNeuralOntology(result.neural_ontology_id);
-      setShowNeuralCreate(false);
-      alert(`Neural ontology created and training started: ${result.neural_ontology_id}`);
+      // Store job ID to start polling
+      setActiveJobId(result.job_id);
     } catch (error) {
-      alert(`Failed to create neural ontology: ${error}`);
+      // Error already handled by mutation's onError
+      console.error("Failed to create neural ontology:", error);
     }
   };
 
@@ -641,12 +667,36 @@ export default function PredictPage() {
                           <p className="text-sm text-gray-700">
                             This will create a new neural ontology and start training. Training may take several minutes depending on ontology size.
                           </p>
+                          
+                          {/* Show job status if active */}
+                          {activeJobId && jobStatus && (
+                            <div className="bg-blue-50 border border-blue-200 rounded-lg p-3">
+                              <div className="flex items-center space-x-2">
+                                {(jobStatus.status === "pending" || jobStatus.status === "processing") && (
+                                  <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-blue-600"></div>
+                                )}
+                                <p className="text-sm font-medium text-blue-800 capitalize">
+                                  Status: {jobStatus.status}
+                                </p>
+                              </div>
+                              {jobStatus.status === "processing" && (
+                                <p className="text-xs text-blue-600 mt-1">
+                                  Training in progress... This may take several minutes.
+                                </p>
+                              )}
+                            </div>
+                          )}
+                          
                           <button
                             onClick={handleCreateNeuralOntology}
-                            disabled={createNeuralOntology.isPending}
-                            className="w-full px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 disabled:bg-gray-400 text-sm font-medium"
+                            disabled={createNeuralOntology.isPending || !!activeJobId}
+                            className="w-full px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 disabled:bg-gray-400 disabled:cursor-not-allowed text-sm font-medium"
                           >
-                            {createNeuralOntology.isPending ? "Creating and Training..." : "Create & Train Neural Ontology"}
+                            {activeJobId 
+                              ? `${jobStatus?.status === "processing" ? "Training" : "Creating"}...`
+                              : createNeuralOntology.isPending 
+                              ? "Starting..." 
+                              : "Create & Train Neural Ontology"}
                           </button>
                         </div>
                       )}
