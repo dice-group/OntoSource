@@ -1,7 +1,7 @@
 "use client";
 import { usePathname } from "next/navigation";
 import Link from "next/link";
-import { Edit3, Brain } from "lucide-react";
+import { Edit3, Brain, Sparkles } from "lucide-react";
 import Logo from "./Logo";
 
 export default function Header() {
@@ -39,6 +39,7 @@ export default function Header() {
       ),
     },
     { href: "/edit", label: "Edit", icon: Edit3 },
+    { href: "/generate", label: "Generate", icon: Sparkles },
     { href: "/predict", label: "Predict", icon: Brain },
   ];
 
