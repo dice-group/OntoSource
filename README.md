@@ -1,6 +1,6 @@
 # OntoSource
 
-An web-based platform for ontology engineering and knowledge graph exploration - intuitive editing, visualization, and reasoning, powered by OWLAPY.
+An web-based platform for ontology engineering and knowledge graph exploration - intuitive editing, visualization, and reasoning, powered by [OWLAPY](https://github.com/dice-group/owlapy).
 
 ## Prerequisites
 
