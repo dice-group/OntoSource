@@ -71,9 +71,9 @@ The webapp will be available at `http://localhost:3000`.
 - **Ontology Generation**: AI-powered ontology creation from natural language descriptions
 - **Import & Export**: Support for OWL/RDF formats (.owl, .rdf, .xml, .ttl, .n3, .nt)
 -️ **Interactive Editing**: Full CRUD operations for classes, properties, individuals, and axioms
-- **Knowledge Graph Visualization**: Interactive graph rendering with react-flow and force-directed layouts
+- **Knowledge Graph Visualization**: Interactive graph rendering with react-flow 
 - **Classical Reasoning**: Inference of instances, sub/super classes, and entity types
-- **Neural Reasoning**: Embedding-based reasoning (EBR) with PyKEEN integration
+- **Neural Reasoning**: Embedding-based reasoning (EBR) 
 - **Multi-Ontology Management**: Upload, store, and switch between multiple ontologies
 - **Entity Explorer**: Browse and analyze ontology entities with detailed summaries
 
