@@ -68,16 +68,22 @@ The webapp will be available at `http://localhost:3000`.
 
 ## Features
 
-- **Ontology Upload**: Import OWL/RDF ontologies (.owl, .rdf, .xml, .ttl, .n3, .nt)
-- **Interactive Editing**: Create and modify classes, properties, individuals, and axioms
-- **Visualization**: Knowledge graph rendering with react-flow
-- **Reasoning**: Structural and neural-based reasoning for instance retrieval
-- **Neural Embeddings**: Embedding-based reasoning (EBR) with custom models
+- **Ontology Generation**: AI-powered ontology creation from natural language descriptions
+- **Import & Export**: Support for OWL/RDF formats (.owl, .rdf, .xml, .ttl, .n3, .nt)
+-️ **Interactive Editing**: Full CRUD operations for classes, properties, individuals, and axioms
+- **Knowledge Graph Visualization**: Interactive graph rendering with react-flow and force-directed layouts
+- **Classical Reasoning**: Inference of instances, sub/super classes, and entity types
+- **Neural Reasoning**: Embedding-based reasoning (EBR) with PyKEEN integration
+- **Multi-Ontology Management**: Upload, store, and switch between multiple ontologies
+- **Entity Explorer**: Browse and analyze ontology entities with detailed summaries
 
 ## API Endpoints
 
+- `/generate` - AI-powered ontology generation from text
 - `/ontology` - Upload, list, and manage ontologies
 - `/modify` - Create and edit ontology entities and axioms
 - `/reasoning` - Perform logical reasoning (instances, sub/super classes, types)
 - `/neural-reasoning` - Neural embedding-based reasoning
+
+For full API documentation, visit `http://localhost:8000/docs` when running the backend.
 

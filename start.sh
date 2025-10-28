@@ -61,16 +61,6 @@ cd webapp
 npm run dev &
 FRONTEND_PID=$!
 cd ..
-echo -e "${GREEN}Frontend started (PID: $FRONTEND_PID) at http://localhost:3000${NC}"
-
-echo -e "\n${GREEN}━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━${NC}"
-echo -e "${GREEN}OntoSource is running!${NC}"
-echo -e "${GREEN}━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━${NC}"
-echo -e "Backend API:  ${YELLOW}http://localhost:8000${NC}"
-echo -e "API Docs:     ${YELLOW}http://localhost:8000/docs${NC}"
-echo -e "Frontend:     ${YELLOW}http://localhost:3000${NC}"
-echo -e "${GREEN}━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━${NC}"
-echo -e "\nPress ${RED}Ctrl+C${NC} to stop all services\n"
 
 # Wait for processes
 wait
