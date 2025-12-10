@@ -81,7 +81,7 @@ nvidia-nvtx-cu12==12.8.90
 openai==2.6.1
 optuna==4.5.0
 orjson==3.11.4
--e git+ssh://git@github.com/dice-group/owlapy.git@28fdb27340cd1a077d65076ce700ee45e31a14c2#egg=owlapy
+owlapy==1.6.2
 owlready2==0.48
 packaging==25.0
 pandas==2.3.3
