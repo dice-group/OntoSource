@@ -2,6 +2,11 @@
 
 An web-based platform for ontology engineering and knowledge graph exploration - intuitive editing, visualization, and reasoning, powered by [OWLAPY](https://github.com/dice-group/owlapy).
 
+![Visualisation Overview](ontosource_ui.png)
+
+![Generation Overview](ontosource_ui2.png)
+"
+
 ## Prerequisites
 
 - Conda (Anaconda or Miniconda)
