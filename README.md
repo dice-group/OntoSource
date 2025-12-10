@@ -5,7 +5,6 @@ An web-based platform for ontology engineering and knowledge graph exploration -
 ![Visualisation Overview](ontosource_ui.png)
 
 ![Generation Overview](ontosource_ui2.png)
-"
 
 ## Prerequisites
 
