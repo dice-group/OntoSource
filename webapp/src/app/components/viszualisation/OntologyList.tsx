@@ -12,6 +12,7 @@ import { useMutation, useQuery } from "@tanstack/react-query";
 import { Ontology } from "../../store/ontology-store";
 import createSummaryAllQueryOptions from "../../queryOptions/createSummaryAllQueryOptions";
 import createDeleteOntologyMutationOptions from "../../mutationOptions/createDeleteOntologyMutationOptions";
+import { Trash2 } from "lucide-react";
 
 interface OntologyItemProps {
   id: string;
@@ -32,36 +33,40 @@ function OntologyItem({
 
   return (
     <div
-      className={`
-        p-4 border rounded-lg cursor-pointer transition-colors
-        ${
-          isSelected
-            ? "border-blue-500 bg-blue-50"
-            : "border-gray-200 hover:border-gray-300 hover:bg-gray-50"
-        }
-      `}
+      className={[
+        "rounded-xl border p-3 cursor-pointer transition-all duration-150 group",
+        isSelected
+          ? "border-[#3B78B8] bg-[#EBF3FC] shadow-sm"
+          : "border-slate-200 hover:border-slate-300 hover:bg-slate-50",
+      ].join(" ")}
       onClick={() => onSelect(id)}
     >
-      <div className="flex justify-between items-start">
-        <div className="flex-1">
-          <h3 className="font-medium text-gray-900 mb-1">{filename}</h3>
-          <p className="text-xs text-gray-500 mb-1 truncate font-mono">
-            ID: {id}
+      <div className="flex items-start justify-between gap-2">
+        <div className="flex-1 min-w-0">
+          <div className="flex items-center gap-2 mb-1">
+            {isSelected && (
+              <span className="w-1.5 h-1.5 rounded-full bg-[#3B78B8] shrink-0" />
+            )}
+            <p className="text-sm font-semibold text-slate-800 break-all">{filename}</p>
+          </div>
+          <p className="text-xs text-slate-400 font-mono break-all mb-2" title={id}>
+            {id}
           </p>
-          {ontology_summary.namespace && (
-            <p className="text-xs text-gray-500 mb-2 truncate">
-              IRI: {ontology_summary.namespace}
-            </p>
-          )}
-          <div className="grid grid-cols-2 gap-2 text-xs text-gray-600">
-            <div>Classes: {ontology_summary.classes}</div>
-            <div>
-              Properties:{" "}
-              {ontology_summary.object_properties +
-                ontology_summary.data_properties}
-            </div>
-            <div>Individuals: {ontology_summary.individuals}</div>
-            <div>Triples: {ontology_summary.triples}</div>
+          <div className="grid grid-cols-2 gap-x-3 gap-y-0.5">
+            {[
+              { label: "Classes", value: ontology_summary.classes },
+              {
+                label: "Props",
+                value: ontology_summary.object_properties + ontology_summary.data_properties,
+              },
+              { label: "Individuals", value: ontology_summary.individuals },
+              { label: "Triples", value: ontology_summary.triples },
+            ].map(({ label, value }) => (
+              <span key={label} className="text-xs text-slate-500">
+                <span className="font-medium text-slate-700">{value}</span>{" "}
+                {label}
+              </span>
+            ))}
           </div>
         </div>
         <button
@@ -69,22 +74,10 @@ function OntologyItem({
             e.stopPropagation();
             mutate(id);
           }}
-          className="ml-2 p-1 text-gray-400 hover:text-red-600 transition-colors"
+          className="p-1.5 rounded-lg text-slate-300 hover:text-red-500 hover:bg-red-50 transition-colors opacity-0 group-hover:opacity-100"
           title="Delete ontology"
         >
-          <svg
-            className="w-4 h-4"
-            fill="none"
-            stroke="currentColor"
-            viewBox="0 0 24 24"
-          >
-            <path
-              strokeLinecap="round"
-              strokeLinejoin="round"
-              strokeWidth={2}
-              d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"
-            />
-          </svg>
+          <Trash2 className="w-3.5 h-3.5" />
         </button>
       </div>
     </div>
@@ -106,62 +99,67 @@ export default function OntologyList() {
 
   if (isPending) {
     return (
-      <div className="bg-white rounded-lg border shadow-sm p-6">
-        <h2 className="text-lg font-medium text-gray-900 mb-2">
-          Loaded Ontologies
-        </h2>
-        <p className="text-gray-500">Loading ontologies...</p>
+      <div className="bg-white rounded-2xl border border-slate-200 shadow-sm p-5">
+        <div className="flex items-center gap-2 mb-4">
+          <h2 className="text-sm font-semibold text-slate-900">Loaded Ontologies</h2>
+        </div>
+        <div className="flex items-center gap-2 text-slate-500 text-sm py-4">
+          <div className="animate-spin h-4 w-4 rounded-full border-2 border-slate-200 border-t-[#3B78B8]" />
+          Loading…
+        </div>
       </div>
     );
   }
 
   if (error) {
     return (
-      <div className="bg-white rounded-lg border shadow-sm p-6">
-        <h2 className="text-lg font-medium text-gray-900 mb-2">
-          Loaded Ontologies
-        </h2>
-        <p className="text-gray-500">
-          Error loading ontologies: {error.message}
+      <div className="bg-white rounded-2xl border border-slate-200 shadow-sm p-5">
+        <h2 className="text-sm font-semibold text-slate-900 mb-2">Loaded Ontologies</h2>
+        <p className="text-xs text-red-600 bg-red-50 rounded-lg px-3 py-2 border border-red-100">
+          {error.message}
         </p>
       </div>
     );
   }
-  if (data?.summary && data.summary.length !== 0) {
+
+  if (!data?.summary || data.summary.length === 0) {
     return (
-      <div className="bg-white rounded-lg border shadow-sm">
-        <div className="p-4 border-b">
-          <h2 className="text-lg font-medium text-gray-900">
-            Loaded Ontologies ({data.summary.length})
-          </h2>
-          <p className="text-sm text-gray-500">
-            Click on an ontology to view its knowledge graph
-          </p>
-        </div>
-        <div className="p-4 space-y-3 max-h-96 overflow-y-auto">
-          {data.summary.map((ontology: Ontology) => (
-            <OntologyItem
-              key={ontology.id}
-              id={ontology.id}
-              filename={ontology.filename}
-              ontology_summary={ontology.summary}
-              isSelected={selectedId === ontology.id}
-              onSelect={handleSelect}
-            />
-          ))}
-        </div>
-      </div>
-    );
-  } else {
-    return (
-      <div className="bg-white rounded-lg border shadow-sm p-6">
-        <h2 className="text-lg font-medium text-gray-900 mb-2">
-          Loaded Ontologies
-        </h2>
-        <p className="text-gray-500">
-          No ontologies loaded. Upload a file to get started.
+      <div className="bg-white rounded-2xl border border-slate-200 shadow-sm p-5">
+        <h2 className="text-sm font-semibold text-slate-900 mb-3">Loaded Ontologies</h2>
+        <p className="text-xs text-slate-400 text-center py-4">
+          No ontologies loaded yet.
+          <br />
+          Upload a file to get started.
         </p>
       </div>
     );
   }
+
+  return (
+    <div className="bg-white rounded-2xl border border-slate-200 shadow-sm">
+      <div className="px-5 py-4 border-b border-slate-100 flex items-center justify-between">
+        <h2 className="text-sm font-semibold text-slate-900">
+          Loaded Ontologies
+        </h2>
+        <span className="text-xs font-medium px-2 py-0.5 rounded-full bg-[#EBF3FC] text-[#2A5988]">
+          {data.summary.length}
+        </span>
+      </div>
+      <div className="p-3 space-y-2 max-h-[420px] overflow-y-auto">
+        {data.summary.map((ontology: Ontology) => (
+          <OntologyItem
+            key={ontology.id}
+            id={ontology.id}
+            filename={ontology.filename}
+            ontology_summary={ontology.summary}
+            isSelected={selectedId === ontology.id}
+            onSelect={handleSelect}
+          />
+        ))}
+      </div>
+      <p className="text-xs text-slate-400 text-center pb-3 px-3">
+        Click an ontology to view its graph
+      </p>
+    </div>
+  );
 }

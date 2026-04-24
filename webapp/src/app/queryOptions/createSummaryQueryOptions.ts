@@ -11,5 +11,6 @@ export default function createSummaryQueryOptions(id: string) {
 
 const getSummary = async (id: string) => {
   const response = await fetch(`/api/ontology/${id}/summary`);
+  if (!response.ok) throw new Error("Failed to fetch ontology summary");
   return response.json();
 };

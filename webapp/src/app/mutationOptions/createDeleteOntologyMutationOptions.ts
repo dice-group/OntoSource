@@ -24,5 +24,7 @@ const deleteOntology = async (id: string) => {
   const response = await fetch(`/api/ontology/${id}`, {
     method: "DELETE",
   });
-  return response.json();
+  const data = await response.json();
+  if (!response.ok) throw new Error(data?.error || "Failed to delete ontology");
+  return data;
 };

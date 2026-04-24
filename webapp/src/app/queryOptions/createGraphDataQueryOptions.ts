@@ -12,6 +12,7 @@ export default function createGraphDataQueryOptions(id: string) {
 
 const getGraphData = async (id: string): Promise<GraphDataResponse> => {
   const response = await fetch(`/api/ontology/${id}/triples`);
+  if (!response.ok) throw new Error("Failed to fetch graph data");
   return response.json();
 };
 

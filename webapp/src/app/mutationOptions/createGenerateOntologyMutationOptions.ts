@@ -17,15 +17,26 @@ export type GenerateOntologyRequest = {
   api_base?: string;
   ontology_namespace?: string;
   filename?: string;
+  ontology_type?: "domain" | "open";
+  query?: string | null;
+  domain?: string | null;
   entity_types?: string[] | null;
   generate_types?: boolean;
   extract_spl_triples?: boolean;
   create_class_hierarchy?: boolean;
+  entity_clustering?: boolean;
+  use_chunking?: boolean | null;
+  use_incremental_merging?: boolean;
+  fact_reassurance?: boolean;
   temperature?: number;
   seed?: number;
   cache?: boolean;
   enable_logging?: boolean;
   max_tokens?: number;
+  chunk_size?: number | null;
+  overlap?: number | null;
+  chunking_strategy?: string | null;
+  auto_chunk_threshold?: number | null;
 };
 
 export type GenerateOntologyJobResponse = {

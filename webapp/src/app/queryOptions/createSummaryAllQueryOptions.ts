@@ -12,6 +12,7 @@ export default function createSummaryAllQueryOptions() {
 
 const getSummaryAll = async (): Promise<SummaryAllResponse> => {
   const response = await fetch("/api/ontology/summary_all");
+  if (!response.ok) throw new Error("Failed to fetch ontology summaries");
   return response.json();
 };
 

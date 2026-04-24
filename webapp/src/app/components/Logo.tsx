@@ -4,38 +4,55 @@ interface LogoProps {
   size?: "small" | "medium" | "large";
   showText?: boolean;
   clickable?: boolean;
+  inverted?: boolean;
 }
 
 export default function Logo({
   size = "medium",
   showText = true,
   clickable = true,
+  inverted = true,
 }: LogoProps) {
-  const sizeClasses = {
-    small: { icon: "w-7 h-7 text-sm", text: "text-base" },
-    medium: { icon: "w-9 h-9 text-lg", text: "text-lg" },
-    large: { icon: "w-12 h-12 text-xl", text: "text-xl" },
+  const sizeMap = {
+    small: { wrapper: "w-7 h-7", text: "text-sm", sub: "hidden" },
+    medium: { wrapper: "w-8 h-8", text: "text-base", sub: "text-xs" },
+    large: { wrapper: "w-10 h-10", text: "text-lg", sub: "text-xs" },
   };
-
-  const classes = sizeClasses[size];
+  const s = sizeMap[size];
 
   const logoContent = (
-    <div className="flex items-center gap-3 group">
+    <div className="flex items-center gap-2.5">
       <div
-        className={`flex items-center justify-center ${classes.icon} rounded-lg bg-gradient-to-br from-blue-600 to-purple-600 text-white font-bold shadow-sm group-hover:shadow-md transition-shadow duration-200`}
+        className={[
+          s.wrapper,
+          "rounded-lg flex items-center justify-center font-bold shadow-sm",
+          inverted
+            ? "bg-white text-[#3B78B8]"
+            : "bg-[#3B78B8] text-white",
+        ].join(" ")}
       >
-        O
+        <span className={s.text}>O</span>
       </div>
       {showText && (
-        <div className="flex flex-col">
-          <h1
-            className={`${classes.text} font-semibold text-gray-900 leading-tight group-hover:text-blue-600 transition-colors duration-200`}
+        <div className="flex flex-col leading-none">
+          <span
+            className={[
+              s.text,
+              "font-semibold tracking-tight",
+              inverted ? "text-white" : "text-slate-900",
+            ].join(" ")}
           >
             OntoSource
-          </h1>
-          <p className="text-xs text-gray-500 leading-tight">
+          </span>
+          <span
+            className={[
+              s.sub,
+              "font-normal mt-0.5",
+              inverted ? "text-white/60" : "text-slate-500",
+            ].join(" ")}
+          >
             Ontology Manager
-          </p>
+          </span>
         </div>
       )}
     </div>
@@ -44,7 +61,5 @@ export default function Logo({
   if (clickable) {
     return <Link href="/">{logoContent}</Link>;
   }
-
   return logoContent;
 }
-
