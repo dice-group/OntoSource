@@ -2,16 +2,53 @@ from fastapi import APIRouter, HTTPException
 from pydantic import BaseModel
 from typing import Optional, Literal, List
 import asyncio
+import os
+import tempfile
+from contextlib import contextmanager
 
 from owlapy.owl_reasoner import StructuralReasoner, SyncReasoner
 from owlapy.class_expression import OWLClass, OWLClassExpression
 from owlapy.iri import IRI
-from owlapy.owl_ontology import Ontology
+from owlapy.owl_ontology import Ontology, SyncOntology
 
 from store import ONTOLOGY_STORE, ONTOLOGY_LOCKS
 from utils import build_class_expression
 
 router = APIRouter(prefix="/reasoning", tags=["reasoning"])
+
+
+@contextmanager
+def _sync_reasoner_for(ont, reasoner_name: str):
+    """Persist the in-memory ontology to a temp OWL file and yield a SyncReasoner bound to it."""
+    fd, tmp_path = tempfile.mkstemp(suffix=".owl")
+    os.close(fd)
+    try:
+        ont.save(IRI.create(tmp_path))
+        sync_ont = SyncOntology(tmp_path)
+        yield SyncReasoner(sync_ont, reasoner=reasoner_name)
+    finally:
+        try:
+            os.unlink(tmp_path)
+        except OSError:
+            pass
+
+
+@contextmanager
+def _build_reasoner(ont, request):
+    """Yield the reasoner selected by request.reasoner_type."""
+    if request.reasoner_type == "structural":
+        yield StructuralReasoner(
+            ont,
+            property_cache=request.property_cache,
+            negation_default=request.negation_default,
+            sub_properties=request.sub_properties,
+        )
+    elif request.reasoner_type == "sync":
+        sync_name = getattr(request, "sync_reasoner_name", None) or "HermiT"
+        with _sync_reasoner_for(ont, sync_name) as reasoner:
+            yield reasoner
+    else:
+        raise HTTPException(status_code=400, detail=f"Unknown reasoner type: {request.reasoner_type}")
 
 
 class IndividualItem(BaseModel):
@@ -63,27 +100,6 @@ async def get_instances(oid: str, request: InstancesRequest):
     def _get_instances():
         with lock:
             try:
-                # Initialize the appropriate reasoner
-                if request.reasoner_type == "structural":
-                    reasoner = StructuralReasoner(
-                        ont,
-                        property_cache=request.property_cache,
-                        negation_default=request.negation_default,
-                        sub_properties=request.sub_properties
-                    )
-                elif request.reasoner_type == "sync":
-                    # For SyncReasoner, we need to pass the ontology path or a SyncOntology
-                    # Since we're working with already loaded ontologies, we'll need to handle this differently
-                    # For now, we'll use StructuralReasoner as fallback
-                    # TODO: Add support for SyncReasoner by saving ontology temporarily
-                    raise HTTPException(
-                        status_code=501, 
-                        detail="SyncReasoner not yet implemented. Please use 'structural' reasoner type."
-                    )
-                else:
-                    raise HTTPException(status_code=400, detail=f"Unknown reasoner type: {request.reasoner_type}")
-                
-                # Parse the class expression with support for complex expressions
                 try:
                     class_expression = build_class_expression(
                         request.class_expression,
@@ -92,17 +108,16 @@ async def get_instances(oid: str, request: InstancesRequest):
                     )
                 except ValueError as e:
                     raise HTTPException(status_code=400, detail=str(e))
-                
-                # Get instances
-                instances = reasoner.instances(class_expression)
-                
-                # Convert to response format
-                individuals = []
-                for ind in instances:
-                    iri_str = ind.iri.as_str()
-                    name = iri_str.split('#')[-1].split('/')[-1]
-                    individuals.append(IndividualItem(iri=iri_str, name=name))
-                
+
+                with _build_reasoner(ont, request) as reasoner:
+                    instances = reasoner.instances(class_expression)
+
+                    individuals = []
+                    for ind in instances:
+                        iri_str = ind.iri.as_str()
+                        name = iri_str.split('#')[-1].split('/')[-1]
+                        individuals.append(IndividualItem(iri=iri_str, name=name))
+
                 return InstancesResponse(
                     ontology_id=oid,
                     class_expression=request.class_expression,
@@ -126,6 +141,8 @@ class SuperClassesRequest(BaseModel):
     property_cache: bool = True
     negation_default: bool = True
     sub_properties: bool = False
+    # For SyncReasoner
+    sync_reasoner_name: Optional[Literal["HermiT", "Pellet", "ELK", "JFact", "Openllet", "Structural"]] = "HermiT"
 
 
 class ClassItem(BaseModel):
@@ -153,35 +170,32 @@ async def get_super_classes(oid: str, request: SuperClassesRequest):
     def _get_super_classes():
         with lock:
             try:
-                if request.reasoner_type == "structural":
-                    reasoner = StructuralReasoner(
-                        ont,
-                        property_cache=request.property_cache,
-                        negation_default=request.negation_default,
-                        sub_properties=request.sub_properties
-                    )
-                else:
-                    raise HTTPException(
-                        status_code=501, 
-                        detail="SyncReasoner not yet implemented. Please use 'structural' reasoner type."
-                    )
-                
                 class_iri = IRI.create(request.class_iri)
                 owl_class = OWLClass(class_iri)
-                
-                super_classes = reasoner.super_classes(owl_class, direct=request.direct, only_named=request.only_named)
-                
-                classes = []
-                for cls in super_classes:
-                    iri_str = cls.iri.as_str()
-                    name = iri_str.split('#')[-1].split('/')[-1]
-                    classes.append(ClassItem(iri=iri_str, name=name))
-                
+
+                with _build_reasoner(ont, request) as reasoner:
+                    if request.reasoner_type == "sync":
+                        super_classes = reasoner.super_classes(owl_class, direct=request.direct)
+                        if request.only_named:
+                            super_classes = [c for c in super_classes if isinstance(c, OWLClass)]
+                    else:
+                        super_classes = reasoner.super_classes(
+                            owl_class, direct=request.direct, only_named=request.only_named
+                        )
+
+                    classes = []
+                    for cls in super_classes:
+                        iri_str = cls.iri.as_str()
+                        name = iri_str.split('#')[-1].split('/')[-1]
+                        classes.append(ClassItem(iri=iri_str, name=name))
+
                 return SuperClassesResponse(
                     ontology_id=oid,
                     class_iri=request.class_iri,
                     super_classes=classes
                 )
+            except HTTPException:
+                raise
             except Exception as e:
                 raise HTTPException(status_code=500, detail=f"Reasoning failed: {str(e)}")
     
@@ -196,6 +210,8 @@ class SubClassesRequest(BaseModel):
     property_cache: bool = True
     negation_default: bool = True
     sub_properties: bool = False
+    # For SyncReasoner
+    sync_reasoner_name: Optional[Literal["HermiT", "Pellet", "ELK", "JFact", "Openllet", "Structural"]] = "HermiT"
 
 
 class SubClassesResponse(BaseModel):
@@ -218,35 +234,32 @@ async def get_sub_classes(oid: str, request: SubClassesRequest):
     def _get_sub_classes():
         with lock:
             try:
-                if request.reasoner_type == "structural":
-                    reasoner = StructuralReasoner(
-                        ont,
-                        property_cache=request.property_cache,
-                        negation_default=request.negation_default,
-                        sub_properties=request.sub_properties
-                    )
-                else:
-                    raise HTTPException(
-                        status_code=501, 
-                        detail="SyncReasoner not yet implemented. Please use 'structural' reasoner type."
-                    )
-                
                 class_iri = IRI.create(request.class_iri)
                 owl_class = OWLClass(class_iri)
-                
-                sub_classes = reasoner.sub_classes(owl_class, direct=request.direct, only_named=request.only_named)
-                
-                classes = []
-                for cls in sub_classes:
-                    iri_str = cls.iri.as_str()
-                    name = iri_str.split('#')[-1].split('/')[-1]
-                    classes.append(ClassItem(iri=iri_str, name=name))
-                
+
+                with _build_reasoner(ont, request) as reasoner:
+                    if request.reasoner_type == "sync":
+                        sub_classes = reasoner.sub_classes(owl_class, direct=request.direct)
+                        if request.only_named:
+                            sub_classes = [c for c in sub_classes if isinstance(c, OWLClass)]
+                    else:
+                        sub_classes = reasoner.sub_classes(
+                            owl_class, direct=request.direct, only_named=request.only_named
+                        )
+
+                    classes = []
+                    for cls in sub_classes:
+                        iri_str = cls.iri.as_str()
+                        name = iri_str.split('#')[-1].split('/')[-1]
+                        classes.append(ClassItem(iri=iri_str, name=name))
+
                 return SubClassesResponse(
                     ontology_id=oid,
                     class_iri=request.class_iri,
                     sub_classes=classes
                 )
+            except HTTPException:
+                raise
             except Exception as e:
                 raise HTTPException(status_code=500, detail=f"Reasoning failed: {str(e)}")
     
@@ -259,6 +272,9 @@ class TypesRequest(BaseModel):
     property_cache: bool = True
     negation_default: bool = True
     sub_properties: bool = False
+    direct: bool = False
+    # For SyncReasoner
+    sync_reasoner_name: Optional[Literal["HermiT", "Pellet", "ELK", "JFact", "Openllet", "Structural"]] = "HermiT"
 
 
 class TypesResponse(BaseModel):
@@ -282,36 +298,26 @@ async def get_types(oid: str, request: TypesRequest):
         with lock:
             try:
                 from owlapy.owl_individual import OWLNamedIndividual
-                
-                if request.reasoner_type == "structural":
-                    reasoner = StructuralReasoner(
-                        ont,
-                        property_cache=request.property_cache,
-                        negation_default=request.negation_default,
-                        sub_properties=request.sub_properties
-                    )
-                else:
-                    raise HTTPException(
-                        status_code=501, 
-                        detail="SyncReasoner not yet implemented. Please use 'structural' reasoner type."
-                    )
-                
+
                 individual_iri = IRI.create(request.individual_iri)
                 individual = OWLNamedIndividual(individual_iri)
-                
-                types = reasoner.types(individual)
-                
+
+                with _build_reasoner(ont, request) as reasoner:
+                    types = list(reasoner.types(individual, direct=request.direct))
+
                 classes = []
                 for cls in types:
                     iri_str = cls.iri.as_str()
                     name = iri_str.split('#')[-1].split('/')[-1]
                     classes.append(ClassItem(iri=iri_str, name=name))
-                
+
                 return TypesResponse(
                     ontology_id=oid,
                     individual_iri=request.individual_iri,
                     types=classes
                 )
+            except HTTPException:
+                raise
             except Exception as e:
                 raise HTTPException(status_code=500, detail=f"Reasoning failed: {str(e)}")
     
