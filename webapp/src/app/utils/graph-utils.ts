@@ -60,13 +60,13 @@ export function getBoxType(nodeType: NodeType): BoxType {
 export function getNodeColor(type: NodeType): string {
   switch (type) {
     case "class":
-      return "#3b82f6";
+      return "#3a78b8";
     case "property":
-      return "#10b981";
+      return "#6c5fa8";
     case "individual":
-      return "#f59e0b";
+      return "#93651f";
     case "literal":
-      return "#ef4444";
+      return "#a34965";
     default:
       return "#6b7280";
   }
@@ -76,10 +76,10 @@ export function getNodeStyle(type: NodeType, boxType: BoxType) {
   const baseStyle = {
     background: getNodeColor(type),
     color: "white",
-    borderRadius: 10,
-    padding: "6px 10px",
+    borderRadius: 6,
+    padding: "8px 12px",
     fontSize: 12,
-    boxShadow: "0 1px 2px rgba(0,0,0,0.15)",
+    boxShadow: "none",
     maxWidth: 240,
   };
 
@@ -137,15 +137,15 @@ export function generateColorFromString(
 export function getSchemaRelationColor(predicate: string): string {
   const lower = predicate.toLowerCase();
   if (lower.includes("type")) return "#8b5cf6";
-  if (lower.includes("subclassof")) return "#3b82f6";
+  if (lower.includes("subclassof")) return "#3a78b8";
   if (lower.includes("subpropertyof")) return "#2563eb";
   if (lower.includes("sameas")) return "#f97316";
-  if (lower.includes("equivalentclass")) return "#10b981";
+  if (lower.includes("equivalentclass")) return "#6c5fa8";
   if (lower.includes("equivalentproperty")) return "#059669";
-  if (lower.includes("domain")) return "#f59e0b";
+  if (lower.includes("domain")) return "#93651f";
   if (lower.includes("range")) return "#d97706";
   if (lower.includes("inverseof")) return "#ec4899";
-  if (lower.includes("disjointwith")) return "#ef4444";
+  if (lower.includes("disjointwith")) return "#a34965";
   if (lower.includes("label")) return "#6366f1";
   if (lower.includes("comment")) return "#8b5cf6";
   return "#64748b"; // Default for other schema relations
@@ -179,7 +179,7 @@ export function hash(s: string): string {
 }
 
 export function shortenUri(uri: string): string {
-  return uri.split("#").pop() || uri.split("/").pop() || uri;
+  return uri.split(/[\/#]/).filter(Boolean).pop() || uri;
 }
 
 // Helper function to create unique edge path identifiers
@@ -188,9 +188,11 @@ function getEdgePathKey(source: string, target: string): string {
 }
 
 // Layout configuration
+export type GraphEdge = Edge<{ predicate: string; isBidirectional: boolean; offset?: number }>;
+
 export const getLayoutedElements = (
   nodes: Node[],
-  edges: Edge[],
+  edges: GraphEdge[],
   direction = "TB",
 ) => {
   const dagreGraph = new dagre.graphlib.Graph();
@@ -228,7 +230,7 @@ export const getLayoutedElements = (
   });
 
   // Group edges by their source-target pairs to detect parallel edges
-  const edgeGroups = new Map<string, Edge[]>();
+  const edgeGroups = new Map<string, GraphEdge[]>();
   edges.forEach((edge) => {
     const pathKey = getEdgePathKey(edge.source, edge.target);
     if (!edgeGroups.has(pathKey)) {

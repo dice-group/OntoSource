@@ -5,6 +5,7 @@ import { useQuery } from "@tanstack/react-query";
 import { Triple } from "../../store/ontology-store";
 import {
   ReactFlow,
+  MarkerType,
   Background,
   Controls,
   BackgroundVariant,
@@ -13,6 +14,7 @@ import "@xyflow/react/dist/style.css";
 import CustomEdge from "./CustomEdge";
 import {
   NodeType,
+  type GraphEdge,
   BoxType,
   getNodeType,
   getBoxType,
@@ -206,7 +208,7 @@ export default function KnowledgeGraph({
       const filteredTriples: Triple[] = [];
 
       allTriples.forEach((t: Triple) => {
-        const { s, p, o } = t;
+        const { s, o } = t;
 
         // Determine subject type and box
         const subjectType = typeMap.get(s) || getNodeType(s);
@@ -248,12 +250,12 @@ export default function KnowledgeGraph({
 
       // Now limit the filtered triples based on maxTriplesToDisplay
       const triples =
-        maxTriplesToDisplay > 0 && maxTriplesToDisplay < filteredTriples.length
-          ? filteredTriples.slice(0, maxTriplesToDisplay)
+        deferredMaxTriples > 0 && deferredMaxTriples < filteredTriples.length
+          ? filteredTriples.slice(0, deferredMaxTriples)
           : filteredTriples;
 
-      const nodeMap = new Map();
-      const edgesAcc: any[] = [];
+      const nodeMap = new Map<string, { id: string; label: string; type: NodeType; boxType: BoxType; color: string }>();
+      const edgesAcc: GraphEdge[] = [];
 
       // Build color map for predicates
       const propertyColorMap = new Map<string, string>();
@@ -267,7 +269,7 @@ export default function KnowledgeGraph({
 
       // First, collect ALL nodes from triples (regardless of relation filtering)
       triples.forEach((t: Triple, i: number) => {
-        const { s, p, o } = t;
+        const { s, o } = t;
 
         if (!nodeMap.has(s)) {
           // Use type from typeMap if available, otherwise infer from URI
@@ -370,8 +372,8 @@ export default function KnowledgeGraph({
           type: "custom",
           style: { strokeWidth: 2, stroke: edgeColor },
           labelStyle: { fontSize: 12, fill: "#334155", fontWeight: 500 },
-          markerEnd: { type: "arrowclosed", color: edgeColor },
-          markerStart: isBidirectional ? { type: "arrowclosed", color: edgeColor } : undefined,
+          markerEnd: { type: MarkerType.ArrowClosed, color: edgeColor },
+          markerStart: isBidirectional ? { type: MarkerType.ArrowClosed, color: edgeColor } : undefined,
           data: { predicate: predicate, isBidirectional }, // Store the predicate for filtering
         });
 
@@ -382,7 +384,7 @@ export default function KnowledgeGraph({
       });
 
       // Filter nodes based on TBox/ABox visibility settings and hidden node types
-      const filteredNodes = Array.from(nodeMap.values()).filter((n: any) => {
+      const filteredNodes = Array.from(nodeMap.values()).filter((n) => {
         if (n.boxType === "tbox" && !showTBox) return false;
         if (n.boxType === "abox" && !showABox) return false;
         if (n.boxType === "literal" && !showLiterals) return false;
@@ -390,16 +392,16 @@ export default function KnowledgeGraph({
         return true;
       });
 
-      const filteredNodeIds = new Set(filteredNodes.map((n: any) => n.id));
+      const filteredNodeIds = new Set(filteredNodes.map((n) => n.id));
 
       // Filter edges to only show connections between visible nodes (hidden-relations applied downstream)
-      const filteredEdges = edgesAcc.filter((e: any) => {
+      const filteredEdges = edgesAcc.filter((e) => {
         if (!filteredNodeIds.has(e.source) || !filteredNodeIds.has(e.target))
           return false;
         return true;
       });
 
-      const rfNodes = filteredNodes.map((n: any, idx: number) => ({
+      const rfNodes = filteredNodes.map((n) => ({
         id: n.id,
         position: { x: 0, y: 0 }, // Will be set by dagre layout
         data: {
@@ -434,7 +436,7 @@ export default function KnowledgeGraph({
 
   // Stage 2: cheap pass that hides edges per current relation filter.
   // Uses deferredHiddenRelations so rapid toggles don't block input.
-  const { nodes, edges, visibleTripleCount } = useMemo(() => {
+  const { nodes, edges } = useMemo(() => {
     if (!deferredHiddenRelations.size) {
       return {
         nodes: allNodes,
@@ -443,7 +445,7 @@ export default function KnowledgeGraph({
       };
     }
     const visibleEdges = allEdges.filter(
-      (e: any) => !deferredHiddenRelations.has(e.data?.predicate),
+      (e) => !deferredHiddenRelations.has(String(e.data?.predicate ?? "")),
     );
     return {
       nodes: allNodes,
@@ -508,15 +510,15 @@ export default function KnowledgeGraph({
 
   if (!ontologyId) {
     return (
-      <div className="flex-1 bg-white rounded-2xl border border-slate-200 shadow-sm p-8 flex items-center justify-center min-h-[500px]">
+      <div className="flex-1 surface-panel p-8 flex items-center justify-center min-h-[540px]">
         <div className="text-center">
-          <div className="w-14 h-14 rounded-2xl bg-slate-100 flex items-center justify-center mx-auto mb-4">
-            <svg className="w-7 h-7 text-slate-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <div className="empty-state-icon">
+            <svg className="w-7 h-7 text-slate-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M9 20l-5.447-2.724A1 1 0 013 16.382V5.618a1 1 0 011.447-.894L9 7m0 13l6-3m-6 3V7m6 10l4.553 2.276A1 1 0 0021 18.382V7.618a1 1 0 00-.553-.894L15 4m0 13V4m0 0L9 7" />
             </svg>
           </div>
           <p className="text-slate-700 font-semibold mb-1">No ontology selected</p>
-          <p className="text-slate-400 text-sm">Select an ontology from the list to visualize its knowledge graph</p>
+          <p className="text-slate-500 text-sm">Select an ontology from the list to visualize its knowledge graph</p>
         </div>
       </div>
     );
@@ -524,11 +526,11 @@ export default function KnowledgeGraph({
 
   if (isPending) {
     return (
-      <div className="flex-1 bg-white rounded-2xl border border-slate-200 shadow-sm p-8 flex items-center justify-center min-h-[500px]">
+      <div className="flex-1 surface-panel p-8 flex items-center justify-center min-h-[540px]">
         <div className="flex flex-col items-center gap-3">
-          <div className="animate-spin rounded-full h-10 w-10 border-2 border-slate-200 border-t-[#3B78B8]" />
+          <div className="animate-spin rounded-full h-10 w-10 border-2 border-slate-200 border-t-primary" />
           <p className="text-slate-700 font-semibold">Loading knowledge graph…</p>
-          <p className="text-slate-400 text-sm">Preparing visualization data</p>
+          <p className="text-slate-500 text-sm">Preparing visualization data</p>
         </div>
       </div>
     );
@@ -536,7 +538,7 @@ export default function KnowledgeGraph({
 
   if (error) {
     return (
-      <div className="flex-1 bg-white rounded-2xl border border-slate-200 shadow-sm p-8">
+      <div className="flex-1 surface-panel p-8">
         <div className="bg-red-50 border border-red-200 rounded-xl p-4">
           <p className="text-red-700 font-semibold text-sm mb-1">Error loading graph</p>
           <p className="text-red-600 text-sm">{error.message}</p>
@@ -550,14 +552,14 @@ export default function KnowledgeGraph({
   const hasVisibleTriples = triples.length > 0;
 
   const toggleBtnBase = "px-3 py-1.5 text-xs font-medium rounded-lg transition-colors";
-  const toggleActive = "bg-[#3B78B8] text-white";
+  const toggleActive = "bg-primary text-white";
   const toggleInactive = "bg-slate-100 text-slate-600 hover:bg-slate-200";
 
   return (
     <div
       ref={containerRef}
       className={[
-        "bg-white border border-slate-200 shadow-sm flex flex-col transition-all duration-300",
+        "graph-panel bg-white border border-slate-200 flex flex-col",
         isFullscreen
           ? "fixed inset-0 z-50 rounded-none h-screen w-screen"
           : "rounded-2xl",
@@ -569,7 +571,7 @@ export default function KnowledgeGraph({
         <div className="flex items-center justify-between gap-3">
           <div>
             <p className="text-sm font-semibold text-slate-900">Knowledge Graph</p>
-            <p className="text-xs text-slate-400 mt-0.5">
+            <p className="text-xs text-slate-500 mt-0.5">
               {nodes.length} nodes · {edges.length} edges
               {total > 0 && ` · ${triples.length}/${filteredTotal} triples shown`}
             </p>
@@ -577,6 +579,7 @@ export default function KnowledgeGraph({
 
           <div className="flex items-center gap-1.5">
             <button
+              aria-pressed={showLegend}
               onClick={() => setShowLegend(!showLegend)}
               className={[toggleBtnBase, showLegend ? toggleActive : toggleInactive].join(" ")}
               title={showLegend ? "Hide legend" : "Show legend"}
@@ -609,25 +612,27 @@ export default function KnowledgeGraph({
           <input
             id="triple-limit"
             type="range"
-            min="100"
-            max={filteredTotal || 100}
-            step="100"
-            value={Math.min(maxTriplesToDisplay, filteredTotal || 100)}
+            min="1"
+            max={Math.max(filteredTotal, 1)}
+            step="1"
+            value={Math.min(maxTriplesToDisplay, Math.max(filteredTotal, 1))}
             onChange={(e) => setMaxTriplesToDisplay(Number(e.target.value))}
-            className="flex-1 h-1.5 bg-slate-200 rounded-full appearance-none cursor-pointer accent-[#3B78B8]"
+            className="flex-1 h-1.5 bg-slate-200 rounded-full appearance-none cursor-pointer accent-primary"
           />
           <input
             type="number"
+            aria-label="Maximum triples to display"
             min="1"
             step="1"
-            value={maxTriplesToDisplay}
+            max={Math.max(filteredTotal, 1)}
+            value={Math.min(maxTriplesToDisplay, Math.max(filteredTotal, 1))}
             onChange={(e) => {
               const v = Number(e.target.value);
-              if (!isNaN(v) && v > 0) setMaxTriplesToDisplay(v);
+              if (!isNaN(v) && v > 0) setMaxTriplesToDisplay(Math.min(v, Math.max(filteredTotal, 1)));
             }}
-            className="w-20 px-2 py-1 text-xs text-slate-900 font-medium border border-slate-300 rounded-lg focus:ring-2 focus:ring-[#3B78B8]/20 focus:border-[#3B78B8]"
+            className="w-20 px-2 py-1 text-xs text-slate-900 font-medium border border-slate-300 rounded-lg focus:ring-2 focus:ring-primary/20 focus:border-primary"
           />
-          <span className="text-xs text-slate-400 whitespace-nowrap">/ {filteredTotal || 0}</span>
+          <span className="text-xs text-slate-500 whitespace-nowrap">/ {filteredTotal || 0}</span>
         </div>
 
         {/* Row 3: Controls */}
@@ -638,10 +643,11 @@ export default function KnowledgeGraph({
               {(["TB", "LR"] as const).map((dir) => (
                 <button
                   key={dir}
+                  aria-pressed={layoutDirection === dir}
                   onClick={() => setLayoutDirection(dir)}
                   className={[
                     "px-3 py-1 text-xs font-medium transition-colors",
-                    layoutDirection === dir ? "bg-[#3B78B8] text-white" : "bg-white text-slate-600 hover:bg-slate-50",
+                    layoutDirection === dir ? "bg-primary text-white" : "bg-white text-slate-600 hover:bg-slate-50",
                   ].join(" ")}
                 >
                   {dir === "TB" ? "Top↓" : "Left→"}
@@ -653,22 +659,25 @@ export default function KnowledgeGraph({
           <div className="flex items-center gap-1.5">
             <span className="text-xs font-medium text-slate-500">Show:</span>
             <button
+              aria-pressed={showTBox}
               onClick={() => setShowTBox(!showTBox)}
-              className={[toggleBtnBase, showTBox ? "bg-[#3B78B8] text-white" : toggleInactive].join(" ")}
+              className={[toggleBtnBase, showTBox ? "bg-primary text-white" : toggleInactive].join(" ")}
               title="TBox: Classes and Properties"
             >
               TBox
             </button>
             <button
+              aria-pressed={showABox}
               onClick={() => setShowABox(!showABox)}
-              className={[toggleBtnBase, showABox ? "bg-amber-500 text-white" : toggleInactive].join(" ")}
+              className={[toggleBtnBase, showABox ? "bg-amber-700 text-white" : toggleInactive].join(" ")}
               title="ABox: Individuals"
             >
               ABox
             </button>
             <button
+              aria-pressed={showLiterals}
               onClick={() => setShowLiterals(!showLiterals)}
-              className={[toggleBtnBase, showLiterals ? "bg-rose-500 text-white" : toggleInactive].join(" ")}
+              className={[toggleBtnBase, showLiterals ? "bg-rose-700 text-white" : toggleInactive].join(" ")}
               title="Literal values"
             >
               Literals
@@ -680,8 +689,8 @@ export default function KnowledgeGraph({
       {/* Graph canvas */}
       <div
         className={[
-          "flex-1",
-          isFullscreen ? "min-h-0" : "min-h-[500px]",
+          "graph-canvas flex-1",
+          isFullscreen ? "min-h-0" : "min-h-[540px]",
         ].join(" ")}
         style={{ width: width ?? "100%" }}
       >
@@ -693,10 +702,11 @@ export default function KnowledgeGraph({
           <div className="h-full flex items-center justify-center bg-slate-50">
             <div className="text-center">
               <p className="text-slate-600 text-sm font-medium mb-1">No triples visible</p>
-              <p className="text-slate-400 text-xs">Try adjusting the TBox / ABox / Literal filters or the legend</p>
+              <p className="text-slate-500 text-xs">Try adjusting the TBox / ABox / Literal filters or the legend</p>
             </div>
           </div>
         ) : (
+          <div className="absolute inset-0">
           <ReactFlow
             nodes={nodes}
             edges={edges}
@@ -712,16 +722,17 @@ export default function KnowledgeGraph({
             zoomOnScroll={true}
             preventScrolling={true}
           >
-            <Background variant={BackgroundVariant.Dots} gap={16} size={1} color="#CBD5E1" />
+            <Background variant={BackgroundVariant.Dots} gap={16} size={1} color="#cbd7ce" />
             <Controls />
           </ReactFlow>
+          </div>
         )}
       </div>
 
       {/* Legend */}
       <div
         className={[
-          "border-t border-slate-100 bg-slate-50 flex-shrink-0 transition-all duration-300 ease-in-out overflow-hidden",
+          "border-t border-slate-100 bg-slate-50 flex-shrink-0 transition-colors duration-300 ease-in-out overflow-hidden",
           showLegend ? "max-h-[480px] opacity-100 p-4" : "max-h-0 opacity-0 p-0",
         ].join(" ")}
       >
@@ -732,9 +743,9 @@ export default function KnowledgeGraph({
             <p className="text-xs font-medium text-slate-500 mb-1.5">Knowledge Types</p>
             <div className="flex flex-wrap gap-3">
               {[
-                { label: "TBox (Schema)", color: "bg-blue-500", border: "border-2 border-slate-800" },
-                { label: "ABox (Instances)", color: "bg-amber-500", border: "border-2 border-dashed border-slate-800" },
-                { label: "Literals", color: "bg-rose-500", border: "border border-dotted border-slate-800" },
+                { label: "TBox (Schema)", color: "bg-primary", border: "border-2 border-slate-800" },
+                { label: "ABox (Instances)", color: "bg-amber-700", border: "border-2 border-dashed border-slate-800" },
+                { label: "Literals", color: "bg-rose-700", border: "border border-dotted border-slate-800" },
               ].map(({ label, color, border }) => (
                 <div key={label} className="flex items-center gap-1.5 text-xs text-slate-600">
                   <div className={`w-8 h-4 rounded ${color} ${border}`} />
@@ -747,10 +758,10 @@ export default function KnowledgeGraph({
           <div>
             <p className="text-xs font-medium text-slate-500 mb-1.5">Node Types <span className="font-normal">(click to toggle)</span></p>
             <div className="flex flex-wrap gap-3">
-              <LegendDot color="#3b82f6" label="Classes" onClick={() => toggleNodeType("class")} isHidden={hiddenNodeTypes.has("class")} />
-              <LegendDot color="#10b981" label="Properties" onClick={() => toggleNodeType("property")} isHidden={hiddenNodeTypes.has("property")} />
-              <LegendDot color="#f59e0b" label="Individuals" onClick={() => toggleNodeType("individual")} isHidden={hiddenNodeTypes.has("individual")} />
-              <LegendDot color="#ef4444" label="Literals" onClick={() => toggleNodeType("literal")} isHidden={hiddenNodeTypes.has("literal")} />
+              <LegendDot color={getNodeColor("class")} label="Classes" onClick={() => toggleNodeType("class")} isHidden={hiddenNodeTypes.has("class")} />
+              <LegendDot color={getNodeColor("property")} label="Properties" onClick={() => toggleNodeType("property")} isHidden={hiddenNodeTypes.has("property")} />
+              <LegendDot color={getNodeColor("individual")} label="Individuals" onClick={() => toggleNodeType("individual")} isHidden={hiddenNodeTypes.has("individual")} />
+              <LegendDot color={getNodeColor("literal")} label="Literals" onClick={() => toggleNodeType("literal")} isHidden={hiddenNodeTypes.has("literal")} />
             </div>
           </div>
 
@@ -789,26 +800,30 @@ export default function KnowledgeGraph({
 
 function LegendDot({ color, label, onClick, isHidden }: { color: string; label: string; onClick?: () => void; isHidden?: boolean }) {
   return (
-    <div
+    <button
+      type="button"
+      aria-pressed={!isHidden}
       className={["flex items-center gap-1.5 text-xs text-slate-600", onClick ? "cursor-pointer hover:opacity-70 transition-opacity" : "", isHidden ? "opacity-30 line-through" : ""].join(" ")}
       onClick={onClick}
       title={onClick ? (isHidden ? `Show ${label}` : `Hide ${label}`) : undefined}
     >
-      <div className="w-3 h-3 rounded-full shrink-0" style={{ backgroundColor: color }} />
+      <span className="w-3 h-3 rounded-full shrink-0" style={{ backgroundColor: color }} />
       <span>{label}</span>
-    </div>
+    </button>
   );
 }
 
 function LegendLine({ color, label, onClick, isHidden }: { color: string; label: string; onClick?: () => void; isHidden?: boolean }) {
   return (
-    <div
+    <button
+      type="button"
+      aria-pressed={!isHidden}
       className={["flex items-center gap-1.5 text-xs text-slate-600", onClick ? "cursor-pointer hover:opacity-70 transition-opacity" : "", isHidden ? "opacity-30 line-through" : ""].join(" ")}
       onClick={onClick}
       title={onClick ? (isHidden ? `Show ${label}` : `Hide ${label}`) : undefined}
     >
-      <div className="w-4 h-1 rounded-full shrink-0" style={{ backgroundColor: color }} />
+      <span className="w-4 h-1 rounded-full shrink-0" style={{ backgroundColor: color }} />
       <span>{label}</span>
-    </div>
+    </button>
   );
 }

@@ -1,14 +1,21 @@
 import type { Metadata } from "next";
-import { Geist, Geist_Mono } from "next/font/google";
+import localFont from "next/font/local";
 import "./globals.css";
 import { Providers } from "./provider";
 import Header from "./components/Header";
 import Footer from "./components/Footer";
 
-const geistSans = Geist({ variable: "--font-geist-sans", subsets: ["latin"] });
-const geistMono = Geist_Mono({
+const geistSans = localFont({
+  src: "./fonts/Geist-Variable.woff2",
+  variable: "--font-geist-sans",
+  weight: "100 900",
+  display: "swap",
+});
+const geistMono = localFont({
+  src: "./fonts/GeistMono-Variable.woff2",
   variable: "--font-geist-mono",
-  subsets: ["latin"],
+  weight: "100 900",
+  display: "swap",
 });
 
 export const metadata: Metadata = {
@@ -28,10 +35,13 @@ export default function RootLayout({
         suppressHydrationWarning
       >
         <Providers>
-          <div className="min-h-screen flex flex-col bg-slate-50">
+          <div className="app-shell">
+            <a className="skip-link" href="#main-content">Skip to content</a>
             <Header />
-            <main className="flex-1">{children}</main>
-            <Footer />
+            <div className="app-body">
+              <main id="main-content" className="flex-1" tabIndex={-1}>{children}</main>
+              <Footer />
+            </div>
           </div>
         </Providers>
       </body>

@@ -8,7 +8,7 @@ interface BadgeProps {
 }
 
 const variantClasses = {
-  primary: "bg-[#EBF3FC] text-[#2A5988] border border-[#B8D4EE]",
+  primary: "bg-primary-surface text-primary-dark border border-primary-border",
   success: "bg-emerald-50 text-emerald-700 border border-emerald-200",
   warning: "bg-amber-50 text-amber-700 border border-amber-200",
   error: "bg-red-50 text-red-700 border border-red-200",
@@ -17,7 +17,7 @@ const variantClasses = {
 };
 
 const dotColors = {
-  primary: "bg-[#3B78B8]",
+  primary: "bg-primary",
   success: "bg-emerald-500",
   warning: "bg-amber-500",
   error: "bg-red-500",

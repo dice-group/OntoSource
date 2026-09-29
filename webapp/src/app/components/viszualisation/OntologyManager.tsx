@@ -6,6 +6,7 @@ import OntologyList from "./OntologyList";
 import KnowledgeGraph from "./KnowledgeGraph";
 import { useQuery } from "@tanstack/react-query";
 import createSummaryQueryOptions from "../../queryOptions/createSummaryQueryOptions";
+import PageHeader from "../ui/PageHeader";
 import { Tag } from "lucide-react";
 
 export default function OntologyManager() {
@@ -17,24 +18,16 @@ export default function OntologyManager() {
   });
 
   return (
-    <div className="min-h-[calc(100vh-56px)] bg-slate-50 py-8">
-      <div className="w-full lg:w-3/4 mx-auto px-4 sm:px-6 lg:px-8">
-        {/* Page Header */}
-        <div className="mb-8">
-          <h1 className="text-2xl font-bold text-slate-900">
-            Knowledge Graph Visualization
-          </h1>
-          <p className="text-sm text-slate-500 mt-1">
-            Upload ontology files and explore their knowledge graphs interactively
-          </p>
-        </div>
+    <div className="workspace-page">
+      <div className="workspace-content workspace-content-wide">
+        <PageHeader title="Knowledge Graph Visualization" description="Upload ontology files and explore their knowledge graphs interactively" />
 
-        <div className="grid grid-cols-1 lg:grid-cols-4 gap-6">
+        <div className="visualization-layout">
           {/* Left Panel */}
-          <div className="lg:col-span-1 space-y-4">
+          <div className="ontology-sidebar space-y-5">
             {/* Upload Card */}
-            <div className="bg-white rounded-2xl border border-slate-200 shadow-sm p-4">
-              <p className="text-xs font-semibold text-slate-500 uppercase tracking-wide mb-3">
+            <div className="upload-panel">
+              <p className="text-sm font-semibold text-slate-800 mb-3">
                 Upload
               </p>
               <FileUpload />
@@ -45,11 +38,11 @@ export default function OntologyManager() {
           </div>
 
           {/* Right Panel */}
-          <div className="lg:col-span-3 flex flex-col gap-4">
+          <div className="graph-workspace flex flex-col gap-4">
             {/* Namespace pill */}
             {selectedId && data?.ontology_iri && (
-              <div className="bg-white rounded-xl border border-slate-200 shadow-sm px-4 py-3 flex items-center gap-2">
-                <Tag className="w-3.5 h-3.5 text-[#3B78B8] shrink-0" />
+              <div className="surface-panel px-4 py-3 flex items-center gap-2">
+                <Tag className="w-3.5 h-3.5 text-primary shrink-0" />
                 <span className="text-xs font-medium text-slate-500 shrink-0">
                   Namespace:
                 </span>
@@ -63,7 +56,7 @@ export default function OntologyManager() {
           </div>
         </div>
 
-        <p className="mt-8 text-center text-xs text-slate-400">
+        <p className="mt-5 text-xs text-slate-500">
           Supports OWL, RDF, TTL, N3, and NT formats
         </p>
       </div>

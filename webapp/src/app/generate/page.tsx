@@ -1,85 +1,41 @@
 "use client";
 
-import { useState, useEffect, useCallback, useRef } from "react";
+import PageHeader from "../components/ui/PageHeader";
+import { useState, useEffect } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import createGenerateOntologyMutationOptions from "@/app/mutationOptions/createGenerateOntologyMutationOptions";
 import { createGenerateJobStatusQueryOptions } from "@/app/queryOptions/createGenerateJobStatusQueryOptions";
 import createSummaryAllQueryOptions from "@/app/queryOptions/createSummaryAllQueryOptions";
 import { useSetSelectedOntology } from "@/app/store/ontology-store";
 import { toast } from "sonner";
-import ComboBox, { type ComboBoxOption } from "@/app/components/ComboBox";
+import ProviderConnection from "../components/ProviderConnection";
+import type { Connection } from "../lib/providers";
+import ToolNavigation from "@/app/components/ui/ToolNavigation";
 import StepSection from "@/app/components/ui/StepSection";
 import Button from "@/app/components/ui/Button";
 import { Sparkles, ChevronDown, CheckCircle, AlertCircle, ArrowRight } from "lucide-react";
 
 type OntologySummaryItem = { id: string; filename: string };
 
-const API_PROVIDER_PRESETS: ComboBoxOption[] = [
-  { value: "https://models.github.ai/inference", label: "GitHub Models", description: "Free inference via GitHub Models marketplace" },
-  { value: "https://api.openai.com/v1", label: "OpenAI", description: "GPT-4o, o1, o3, etc." },
-  { value: "https://api.anthropic.com/v1", label: "Anthropic", description: "Claude 4, Sonnet, Haiku, etc." },
-  { value: "https://openrouter.ai/api/v1", label: "OpenRouter", description: "Aggregator — access 200+ models" },
-  { value: "https://api.groq.com/openai/v1", label: "Groq", description: "Ultra-fast LLM inference" },
-  { value: "https://api.together.xyz/v1", label: "Together AI", description: "Open-source & fine-tuned models" },
-  { value: "https://api.fireworks.ai/inference/v1", label: "Fireworks AI", description: "Fast open-source model hosting" },
-  { value: "https://api.deepseek.com/v1", label: "DeepSeek", description: "DeepSeek V3/R1 models" },
-  { value: "http://localhost:11434/v1", label: "Ollama (local)", description: "Local Ollama instance" },
-  { value: "http://localhost:1234/v1", label: "LM Studio (local)", description: "Local LM Studio instance" },
-];
-
-const DEFAULT_MODEL_PRESETS: ComboBoxOption[] = [
-  { value: "gpt-4o", label: "GPT-4o", description: "OpenAI flagship" },
-  { value: "gpt-4o-mini", label: "GPT-4o Mini", description: "Fast & cheap" },
-  { value: "gpt-4.1", label: "GPT-4.1", description: "OpenAI latest" },
-  { value: "o4-mini", label: "o4-mini", description: "OpenAI reasoning" },
-  { value: "claude-sonnet-4-20250514", label: "Claude Sonnet 4", description: "Anthropic" },
-  { value: "deepseek-chat", label: "DeepSeek V3", description: "DeepSeek" },
-  { value: "deepseek-reasoner", label: "DeepSeek R1", description: "DeepSeek reasoning" },
-];
-
-const inputCls = "w-full px-3 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-[#3B78B8]/20 focus:border-[#3B78B8] text-slate-900 placeholder-slate-400 text-sm transition-colors bg-white";
+const inputCls = "w-full px-3 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-primary/20 focus:border-primary text-slate-900 placeholder-slate-500 text-sm transition-colors bg-white";
 const labelCls = "block text-sm font-medium text-slate-700 mb-1.5";
-const checkboxCls = "rounded border-slate-300 text-[#3B78B8] focus:ring-[#3B78B8]";
+const checkboxCls = "rounded border-slate-300 text-primary focus:ring-primary";
 
 export default function GeneratePage() {
   const queryClient = useQueryClient();
   const setSelectedOntology = useSetSelectedOntology();
 
+  const [workspace, setWorkspace] = useState("source");
   const [text, setText] = useState("");
-  const [apiKey, setApiKey] = useState("");
-  const [modelName, setModelName] = useState("gpt-4o");
-  const [apiBase, setApiBase] = useState("https://models.github.ai/inference");
+  const [connection, setConnection] = useState<Connection>({ apiBase: "https://models.github.ai/inference", apiKey: "", modelName: "", protocol: "openai" });
+  const { apiKey, apiBase, modelName, protocol: apiProtocol } = connection;
   const [ontologyNamespace, setOntologyNamespace] = useState("http://example.com/ontogen#");
   const [filename, setFilename] = useState("generated_ontology.owl");
   const [ontologyType, setOntologyType] = useState<"domain" | "open">("domain");
 
-  const [fetchedModels, setFetchedModels] = useState<ComboBoxOption[]>([]);
-  const [modelsFetching, setModelsFetching] = useState(false);
-  const fetchTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
-
-  const fetchModels = useCallback(async (base: string, key: string) => {
-    if (!base.trim() || !key.trim()) { setFetchedModels([]); return; }
-    setModelsFetching(true);
-    try {
-      const params = new URLSearchParams({ api_base: base, api_key: key });
-      const res = await fetch(`/api/models?${params}`);
-      if (!res.ok) throw new Error();
-      const data = await res.json();
-      setFetchedModels((data.models || []).map((m: string) => ({ value: m, label: m })));
-    } catch { setFetchedModels([]); }
-    finally { setModelsFetching(false); }
-  }, []);
-
-  useEffect(() => {
-    if (fetchTimeoutRef.current) clearTimeout(fetchTimeoutRef.current);
-    fetchTimeoutRef.current = setTimeout(() => fetchModels(apiBase, apiKey), 600);
-    return () => { if (fetchTimeoutRef.current) clearTimeout(fetchTimeoutRef.current); };
-  }, [apiBase, apiKey, fetchModels]);
-
-  const modelOptions = fetchedModels.length > 0 ? fetchedModels : DEFAULT_MODEL_PRESETS;
   const [query, setQuery] = useState("");
 
-  const [showAdvancedOptions, setShowAdvancedOptions] = useState(false);
+  const [showAdvancedOptions, setShowAdvancedOptions] = useState(true);
   const [domain, setDomain] = useState("");
   const [entityTypes, setEntityTypes] = useState("");
   const [generateTypes, setGenerateTypes] = useState(false);
@@ -115,25 +71,23 @@ export default function GeneratePage() {
     if (jobStatus.status === "completed") {
       if (jobStatus.ontology_id) {
         setSelectedOntology(jobStatus.ontology_id);
-        queryClient.invalidateQueries({ queryKey: ["ontologies"] });
+        queryClient.invalidateQueries({ queryKey: ["ontology-summary-all"] });
         toast.success(jobStatus.message || "Ontology generated successfully!");
       }
-      setActiveJobId(null);
     } else if (jobStatus.status === "failed") {
       toast.error(jobStatus.error || "Failed to generate ontology");
-      setActiveJobId(null);
     }
   }, [jobStatus, queryClient, setSelectedOntology]);
 
   const handleGenerate = async () => {
     if (!text.trim()) { toast.error("Please enter some text to generate an ontology from"); return; }
-    if (!apiKey.trim()) { toast.error("Please provide an API key"); return; }
+    if (!modelName.trim()) { toast.error("Choose or enter a model ID"); setWorkspace("provider"); return; }
 
     const useChunkingValue = useChunking === "auto" ? null : useChunking === "enabled";
 
     try {
       const result = await generateMutation.mutateAsync({
-        text, model_name: modelName, api_key: apiKey, api_base: apiBase,
+        text, model_name: modelName, api_key: apiKey, api_base: apiBase, api_protocol: apiProtocol,
         ontology_namespace: ontologyNamespace, filename, ontology_type: ontologyType,
         query: query.trim() || null, domain: domain.trim() || null,
         entity_types: entityTypes ? entityTypes.split(",").map((t) => t.trim()) : null,
@@ -154,48 +108,39 @@ export default function GeneratePage() {
     }
   };
 
-  const isRunning = generateMutation.isPending || !!activeJobId;
+  const isRunning = generateMutation.isPending || (!!activeJobId && jobStatus?.status !== "completed" && jobStatus?.status !== "failed");
   const isProcessing = activeJobId && (jobStatus?.status === "pending" || jobStatus?.status === "processing");
 
   return (
-    <div className="bg-slate-50 py-8">
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-        {/* Page header */}
-        <div className="mb-8">
-          <div className="flex items-center gap-2 mb-1">
-            <div className="w-8 h-8 rounded-xl bg-[#3B78B8] flex items-center justify-center">
-              <Sparkles className="w-4 h-4 text-white" />
-            </div>
-            <h1 className="text-2xl font-bold text-slate-900">Generate Ontology</h1>
-          </div>
-          <p className="text-sm text-slate-500">
-            Use AI to automatically generate ontologies from natural language descriptions
-          </p>
-        </div>
+    <div className="workspace-page">
+      <div className="workspace-content">
+        <PageHeader title="Generate Ontology" description="Use AI to automatically generate ontologies from natural language descriptions" />
 
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+        <ToolNavigation value={workspace} onChange={setWorkspace} label="Generation tools" items={[
+          { id: "source", label: "Source text" }, { id: "provider", label: "Model connection" },
+          { id: "output", label: "Ontology output" }, { id: "extraction", label: "Extraction settings" },
+        ]} />
+        <div className="workflow-layout">
           {/* Left column: config */}
           <div className="lg:col-span-2 space-y-4">
-
-            {/* Step 1: Input text */}
-            <StepSection step={1} title="Input Text" description="Describe the domain concepts and relationships">
+            <div hidden={workspace !== "source"}><StepSection title="Input Text" description="Describe the domain concepts and relationships">
               <div className="space-y-4">
                 <div>
-                  <label className={labelCls}>Text to analyze</label>
-                  <textarea
+                  <label htmlFor="generate-field-1" className={labelCls}>Text to analyze</label>
+                  <textarea id="generate-field-1"
                     value={text}
                     onChange={(e) => setText(e.target.value)}
                     placeholder='E.g. "A family consists of parents and children. Parents have children. A person can be male or female."'
-                    className={`${inputCls} font-mono resize-y`}
+                    className={`${inputCls} resize-y`}
                     rows={7}
                   />
                 </div>
                 <div>
-                  <label className={labelCls}>
+                  <label htmlFor="generate-field-2" className={labelCls}>
                     Custom prompt{" "}
-                    <span className="font-normal text-slate-400">(optional)</span>
+                    <span className="font-normal text-slate-500">(optional)</span>
                   </label>
-                  <textarea
+                  <textarea id="generate-field-2"
                     value={query}
                     onChange={(e) => setQuery(e.target.value)}
                     placeholder="Additional instructions, e.g. 'Focus on hierarchical relationships only'"
@@ -204,55 +149,10 @@ export default function GeneratePage() {
                   />
                 </div>
               </div>
-            </StepSection>
+            </StepSection></div>
+            <div hidden={workspace !== "provider"}><ProviderConnection value={connection} onChange={setConnection} /></div>
 
-            {/* Step 2: API configuration */}
-            <StepSection step={2} title="API Configuration" description="Connect to your preferred LLM provider">
-              <div className="space-y-4">
-                <div>
-                  <label className={labelCls}>
-                    API Key <span className="text-red-500">*</span>
-                  </label>
-                  <input
-                    type="password"
-                    value={apiKey}
-                    onChange={(e) => setApiKey(e.target.value)}
-                    placeholder="Enter your API key"
-                    className={inputCls}
-                  />
-                </div>
-                <div className="grid grid-cols-2 gap-4">
-                  <ComboBox
-                    id="api-base-select"
-                    label="API Provider"
-                    value={apiBase}
-                    onChange={setApiBase}
-                    options={API_PROVIDER_PRESETS}
-                    placeholder="Select provider or paste URL…"
-                    hint="Pick a known provider or enter any OpenAI-compatible endpoint"
-                  />
-                  <ComboBox
-                    id="model-select"
-                    label="Model"
-                    value={modelName}
-                    onChange={setModelName}
-                    options={modelOptions}
-                    loading={modelsFetching}
-                    placeholder="Select or type model name…"
-                    hint={
-                      fetchedModels.length > 0
-                        ? `${fetchedModels.length} models available`
-                        : apiKey
-                          ? "Enter API key & base to auto-fetch models"
-                          : "Showing common presets"
-                    }
-                  />
-                </div>
-              </div>
-            </StepSection>
-
-            {/* Step 3: Ontology configuration */}
-            <StepSection step={3} title="Ontology Configuration" description="Define the output ontology properties">
+            <div hidden={workspace !== "output"}><StepSection title="Ontology Configuration" description="Define the output ontology properties">
               <div className="space-y-4">
                 <div>
                   <label className={labelCls}>Extraction Mode</label>
@@ -264,7 +164,7 @@ export default function GeneratePage() {
                         className={[
                           "flex-1 py-2 text-sm font-medium transition-colors capitalize",
                           ontologyType === type
-                            ? "bg-[#3B78B8] text-white"
+                            ? "bg-primary text-white"
                             : "bg-white text-slate-600 hover:bg-slate-50",
                         ].join(" ")}
                       >
@@ -279,25 +179,26 @@ export default function GeneratePage() {
                   </p>
                 </div>
                 <div>
-                  <label className={labelCls}>Ontology Namespace</label>
-                  <input type="text" value={ontologyNamespace} onChange={(e) => setOntologyNamespace(e.target.value)} placeholder="http://example.com/ontogen#" className={inputCls} />
+                  <label htmlFor="generate-field-4" className={labelCls}>Ontology Namespace</label>
+                  <input id="generate-field-4" type="text" value={ontologyNamespace} onChange={(e) => setOntologyNamespace(e.target.value)} placeholder="http://example.com/ontogen#" className={inputCls} />
                 </div>
                 <div>
-                  <label className={labelCls}>Output Filename</label>
-                  <input type="text" value={filename} onChange={(e) => setFilename(e.target.value)} placeholder="generated_ontology.owl" className={inputCls} />
+                  <label htmlFor="generate-field-5" className={labelCls}>Output Filename</label>
+                  <input id="generate-field-5" type="text" value={filename} onChange={(e) => setFilename(e.target.value)} placeholder="generated_ontology.owl" className={inputCls} />
                 </div>
               </div>
-            </StepSection>
+            </StepSection></div>
 
             {/* Advanced Options */}
-            <div className="bg-white rounded-2xl border border-slate-200 shadow-sm">
+            <div hidden={workspace !== "extraction"} className="surface-panel">
               <button
+                aria-expanded={showAdvancedOptions}
                 onClick={() => setShowAdvancedOptions(!showAdvancedOptions)}
                 className="w-full flex items-center justify-between px-6 py-4 text-left"
               >
                 <span className="text-sm font-semibold text-slate-900">Advanced Options</span>
                 <ChevronDown
-                  className={`w-4 h-4 text-slate-400 transition-transform duration-200 ${showAdvancedOptions ? "rotate-180" : ""}`}
+                  className={`w-4 h-4 text-slate-500 transition-transform duration-200 ${showAdvancedOptions ? "rotate-180" : ""}`}
                 />
               </button>
 
@@ -309,14 +210,14 @@ export default function GeneratePage() {
 
                     {ontologyType === "domain" && (
                       <div>
-                        <label className={labelCls}>Domain <span className="font-normal text-slate-400">(optional)</span></label>
-                        <input type="text" value={domain} onChange={(e) => setDomain(e.target.value)} placeholder="Auto-detected if left empty" className={inputCls} />
+                        <label htmlFor="generate-field-6" className={labelCls}>Domain <span className="font-normal text-slate-500">(optional)</span></label>
+                        <input id="generate-field-6" type="text" value={domain} onChange={(e) => setDomain(e.target.value)} placeholder="Auto-detected if left empty" className={inputCls} />
                       </div>
                     )}
 
                     <div>
-                      <label className={labelCls}>Entity Types <span className="font-normal text-slate-400">(comma-separated)</span></label>
-                      <input type="text" value={entityTypes} onChange={(e) => setEntityTypes(e.target.value)} placeholder="Person, Organization, Event" className={inputCls} />
+                      <label htmlFor="generate-field-7" className={labelCls}>Entity Types <span className="font-normal text-slate-500">(comma-separated)</span></label>
+                      <input id="generate-field-7" type="text" value={entityTypes} onChange={(e) => setEntityTypes(e.target.value)} placeholder="Person, Organization, Event" className={inputCls} />
                     </div>
 
                     <div className="space-y-2.5">
@@ -339,8 +240,8 @@ export default function GeneratePage() {
                   <div className="space-y-4">
                     <p className="text-xs font-semibold text-slate-500 uppercase tracking-wide">Chunking</p>
                     <div>
-                      <label className={labelCls}>Chunking Mode</label>
-                      <select value={useChunking} onChange={(e) => setUseChunking(e.target.value as "auto" | "enabled" | "disabled")} className={inputCls}>
+                      <label htmlFor="generate-field-8" className={labelCls}>Chunking Mode</label>
+                      <select id="generate-field-8" value={useChunking} onChange={(e) => setUseChunking(e.target.value as "auto" | "enabled" | "disabled")} className={inputCls}>
                         <option value="auto">Auto (based on text size)</option>
                         <option value="enabled">Always enabled</option>
                         <option value="disabled">Disabled</option>
@@ -351,34 +252,34 @@ export default function GeneratePage() {
                       <span className="text-sm text-slate-700">Incremental Merging</span>
                     </label>
 
-                    <button type="button" onClick={() => setShowChunkingConfig(!showChunkingConfig)} className="text-xs text-[#3B78B8] hover:text-[#2A5988] flex items-center gap-1 font-medium">
+                    <button type="button" aria-expanded={showChunkingConfig} onClick={() => setShowChunkingConfig(!showChunkingConfig)} className="text-xs text-primary hover:text-primary-dark flex items-center gap-1 font-medium">
                       <ChevronDown className={`w-3.5 h-3.5 transition-transform ${showChunkingConfig ? "rotate-180" : ""}`} />
                       {showChunkingConfig ? "Hide" : "Show"} chunking parameters
                     </button>
 
                     {showChunkingConfig && (
-                      <div className="space-y-4 pl-4 border-l-2 border-[#3B78B8]/20">
-                        <div className="grid grid-cols-2 gap-4">
+                      <div className="space-y-4 pl-4 border-l-2 border-primary/20">
+                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                           <div>
-                            <label className={labelCls}>Chunk Size (chars)</label>
-                            <input type="number" min="100" value={chunkSize} onChange={(e) => setChunkSize(e.target.value === "" ? "" : parseInt(e.target.value))} className={inputCls} />
+                            <label htmlFor="generate-field-9" className={labelCls}>Chunk Size (chars)</label>
+                            <input id="generate-field-9" type="number" min="100" value={chunkSize} onChange={(e) => setChunkSize(e.target.value === "" ? "" : parseInt(e.target.value))} className={inputCls} />
                           </div>
                           <div>
-                            <label className={labelCls}>Overlap (chars)</label>
-                            <input type="number" min="0" value={overlap} onChange={(e) => setOverlap(e.target.value === "" ? "" : parseInt(e.target.value))} className={inputCls} />
+                            <label htmlFor="generate-field-10" className={labelCls}>Overlap (chars)</label>
+                            <input id="generate-field-10" type="number" min="0" value={overlap} onChange={(e) => setOverlap(e.target.value === "" ? "" : parseInt(e.target.value))} className={inputCls} />
                           </div>
                         </div>
                         <div>
-                          <label className={labelCls}>Chunking Strategy</label>
-                          <select value={chunkingStrategy} onChange={(e) => setChunkingStrategy(e.target.value)} className={inputCls}>
+                          <label htmlFor="generate-field-11" className={labelCls}>Chunking Strategy</label>
+                          <select id="generate-field-11" value={chunkingStrategy} onChange={(e) => setChunkingStrategy(e.target.value)} className={inputCls}>
                             <option value="sentence">Sentence</option>
                             <option value="paragraph">Paragraph</option>
                             <option value="fixed">Fixed</option>
                           </select>
                         </div>
                         <div>
-                          <label className={labelCls}>Auto-chunk Threshold (chars)</label>
-                          <input type="number" min="100" value={autoChunkThreshold} onChange={(e) => setAutoChunkThreshold(e.target.value === "" ? "" : parseInt(e.target.value))} className={inputCls} />
+                          <label htmlFor="generate-field-12" className={labelCls}>Auto-chunk Threshold (chars)</label>
+                          <input id="generate-field-12" type="number" min="100" value={autoChunkThreshold} onChange={(e) => setAutoChunkThreshold(e.target.value === "" ? "" : parseInt(e.target.value))} className={inputCls} />
                           <p className="mt-1 text-xs text-slate-500">Text longer than this triggers automatic chunking in auto mode.</p>
                         </div>
                       </div>
@@ -390,16 +291,16 @@ export default function GeneratePage() {
                     <p className="text-xs font-semibold text-slate-500 uppercase tracking-wide">Model Parameters</p>
                     <div className="grid grid-cols-3 gap-4">
                       <div>
-                        <label className={labelCls}>Temperature</label>
-                        <input type="number" step="0.1" min="0" max="2" value={temperature} onChange={(e) => setTemperature(parseFloat(e.target.value))} className={inputCls} />
+                        <label htmlFor="generate-field-13" className={labelCls}>Temperature</label>
+                        <input id="generate-field-13" type="number" step="0.1" min="0" max="2" value={temperature} onChange={(e) => setTemperature(parseFloat(e.target.value))} className={inputCls} />
                       </div>
                       <div>
-                        <label className={labelCls}>Seed</label>
-                        <input type="number" value={seed} onChange={(e) => setSeed(parseInt(e.target.value))} className={inputCls} />
+                        <label htmlFor="generate-field-14" className={labelCls}>Seed</label>
+                        <input id="generate-field-14" type="number" value={seed} onChange={(e) => setSeed(parseInt(e.target.value))} className={inputCls} />
                       </div>
                       <div>
-                        <label className={labelCls}>Max Tokens</label>
-                        <input type="number" min="1" value={maxTokens} onChange={(e) => setMaxTokens(parseInt(e.target.value))} className={inputCls} />
+                        <label htmlFor="generate-field-15" className={labelCls}>Max Tokens</label>
+                        <input id="generate-field-15" type="number" min="1" value={maxTokens} onChange={(e) => setMaxTokens(parseInt(e.target.value))} className={inputCls} />
                       </div>
                     </div>
                     <div className="space-y-2.5">
@@ -419,10 +320,15 @@ export default function GeneratePage() {
             </div>
 
             {/* Actions */}
+            <div className="border-t border-slate-200 pt-4 text-xs text-slate-500 flex gap-4 flex-wrap">
+              <button onClick={() => setWorkspace("source")}>{text.trim().length.toLocaleString()} characters</button>
+              <button onClick={() => setWorkspace("provider")}>{modelName || "Choose a model"}</button>
+              <button onClick={() => setWorkspace("output")}>{filename}</button>
+            </div>
             <div className="flex gap-3">
               <Button
                 onClick={handleGenerate}
-                disabled={isRunning || !text.trim() || !apiKey.trim()}
+                disabled={isRunning || !text.trim() || !modelName.trim() || !apiBase.trim()}
                 loading={isRunning}
                 size="lg"
                 fullWidth
@@ -443,29 +349,29 @@ export default function GeneratePage() {
 
           {/* Right column: status */}
           <div className="lg:col-span-1">
-            <div className="bg-white rounded-2xl border border-slate-200 shadow-sm sticky top-8">
+            <div className="surface-panel sticky top-8">
               <div className="px-5 py-4 border-b border-slate-100">
                 <h2 className="text-sm font-semibold text-slate-900">Status</h2>
               </div>
               <div className="p-5">
                 {!activeJobId && !jobStatus ? (
                   <div className="text-center py-8">
-                    <div className="w-12 h-12 rounded-xl bg-slate-100 flex items-center justify-center mx-auto mb-3">
-                      <Sparkles className="w-5 h-5 text-slate-400" />
+                    <div className="empty-state-icon">
+                      <Sparkles className="w-5 h-5 text-slate-500" />
                     </div>
                     <p className="text-sm text-slate-500">Configure and start generation to see status</p>
                   </div>
                 ) : isProcessing ? (
                   <div className="text-center py-6">
-                    <div className="animate-spin rounded-full h-10 w-10 border-2 border-slate-200 border-t-[#3B78B8] mx-auto mb-3" />
+                    <div className="animate-spin rounded-full h-10 w-10 border-2 border-slate-200 border-t-primary mx-auto mb-3" />
                     <p className="text-sm font-medium text-slate-700 mb-1 capitalize">{jobStatus?.status || "Starting"}…</p>
                     <p className="text-xs text-slate-500">
                       {jobStatus?.status === "processing"
                         ? "Analyzing text and generating ontology. This may take a while."
                         : "Initializing generation process…"}
                     </p>
-                    <div className="mt-4 bg-[#EBF3FC] rounded-xl p-3">
-                      <p className="text-xs text-[#2A5988] font-mono break-all">{activeJobId}</p>
+                    <div className="mt-4 bg-primary-surface rounded-xl p-3">
+                      <p className="text-xs text-primary-dark font-mono break-all">{activeJobId}</p>
                     </div>
                   </div>
                 ) : jobStatus?.status === "completed" ? (
@@ -522,7 +428,7 @@ export default function GeneratePage() {
                       {ontologies.summary.slice(0, 5).map((ont: OntologySummaryItem) => (
                         <div key={ont.id} className="bg-slate-50 border border-slate-200 rounded-xl p-2.5">
                           <p className="text-xs font-semibold text-slate-800 truncate">{ont.filename}</p>
-                          <p className="text-xs text-slate-400 font-mono truncate">{ont.id.slice(0, 24)}…</p>
+                          <p className="text-xs text-slate-500 font-mono truncate">{ont.id.slice(0, 24)}…</p>
                         </div>
                       ))}
                     </div>

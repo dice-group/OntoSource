@@ -29,7 +29,7 @@ export default function CustomEdge({
   let labelX: number;
   let labelY: number;
 
-  if (offset !== 0) {
+  if (offset !== 0 && (sourceX !== targetX || sourceY !== targetY)) {
     // Calculate the midpoint
     const midX = (sourceX + targetX) / 2;
     const midY = (sourceY + targetY) / 2;
@@ -70,7 +70,7 @@ export default function CustomEdge({
 
   return (
     <>
-      <BaseEdge path={edgePath} markerEnd={markerEnd} markerStart={markerStart} style={style} />
+      <BaseEdge id={id} path={edgePath} markerEnd={markerEnd} markerStart={markerStart} style={style} />
       {label && (
         <EdgeLabelRenderer>
           <div

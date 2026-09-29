@@ -11,14 +11,14 @@ interface ButtonProps extends React.ButtonHTMLAttributes<HTMLButtonElement> {
 
 const variantClasses = {
   primary:
-    "bg-[#3B78B8] hover:bg-[#2A5988] text-white border border-transparent shadow-sm hover:shadow",
+    "bg-primary hover:bg-primary-dark text-white border border-transparent ",
   secondary:
-    "bg-white hover:bg-slate-50 text-slate-700 border border-slate-300 shadow-sm",
+    "bg-white hover:bg-slate-50 text-slate-700 border border-slate-300 ",
   ghost: "bg-transparent hover:bg-slate-100 text-slate-600 border border-transparent",
   danger:
-    "bg-red-600 hover:bg-red-700 text-white border border-transparent shadow-sm",
+    "bg-red-600 hover:bg-red-700 text-white border border-transparent ",
   success:
-    "bg-emerald-600 hover:bg-emerald-700 text-white border border-transparent shadow-sm",
+    "bg-emerald-600 hover:bg-emerald-700 text-white border border-transparent ",
 };
 
 const sizeClasses = {
@@ -45,8 +45,9 @@ export default function Button({
     <button
       {...props}
       disabled={isDisabled}
+      aria-busy={loading || undefined}
       className={[
-        "inline-flex items-center justify-center font-medium transition-all duration-150 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#3B78B8] focus-visible:ring-offset-2",
+        "ui-button inline-flex items-center justify-center font-medium transition-colors duration-150 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2",
         variantClasses[variant],
         sizeClasses[size],
         fullWidth ? "w-full" : "",

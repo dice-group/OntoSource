@@ -21,7 +21,7 @@ export default function Card({
   return (
     <div
       className={[
-        "bg-white rounded-2xl border border-slate-200 shadow-sm",
+        "surface-panel",
         paddingClasses[padding],
         className,
       ]
