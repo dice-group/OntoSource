@@ -1,12 +1,18 @@
 from fastapi import FastAPI
+from fastapi.responses import JSONResponse
 
 from routers import ontology, modify, reasoning, neural_reasoning, generate_ontology
 import store
 
 app = FastAPI(title="Ontology Upload API")
 
-app.state.ontology_store = store.ONTOLOGY_STORE
-app.state.ontology_locks = store.ONTOLOGY_LOCKS
+app.state.ontology_store = store.ONTOLOGIES
+
+
+@app.exception_handler(store.OntologyNotFound)
+async def ontology_not_found(request, exc):
+    return JSONResponse(status_code=404, content={"detail": "Ontology ID not found."})
+
 
 app.include_router(ontology.router)
 app.include_router(modify.router)

@@ -1,24 +1,23 @@
+from enum import Enum
 from fastapi import APIRouter, HTTPException, UploadFile, File, BackgroundTasks
-from pydantic import BaseModel
+from pydantic import BaseModel, model_validator
 from typing import Optional, List, Literal
 import asyncio
 import tempfile
 import os
 import uuid
+import io
+import zipfile
+from pathlib import Path, PurePosixPath
 
 from owlapy.owl_reasoner import EBR
 from owlapy.owl_ontology import NeuralOntology
-from owlapy.class_expression import OWLClass, OWLClassExpression
 from owlapy.iri import IRI
 
-from store import ONTOLOGY_STORE, ONTOLOGY_LOCKS
+from store import ONTOLOGIES, NEURAL_ONTOLOGIES, OntologyNotFound
 from utils import build_class_expression
 
 router = APIRouter(prefix="/neural-reasoning", tags=["neural-reasoning"])
-
-# Store for neural ontologies (separate from regular ontologies)
-NEURAL_ONTOLOGY_STORE = {}
-NEURAL_ONTOLOGY_LOCKS = {}
 
 
 class IndividualItem(BaseModel):
@@ -30,6 +29,12 @@ class CreateNeuralOntologyRequest(BaseModel):
     ontology_id: str  # Reference to an existing ontology
     path_neural_embedding: Optional[str] = None  # Path to pre-trained embedding
     retrain: bool = False  # Whether to retrain the model
+
+    @model_validator(mode="after")
+    def validate_source(self):
+        if not self.path_neural_embedding and not self.retrain:
+            raise ValueError("Either provide path_neural_embedding or set retrain=True")
+        return self
 
 
 class CreateNeuralOntologyResponse(BaseModel):
@@ -46,7 +51,9 @@ class CreateNeuralOntologyJobResponse(BaseModel):
 
 class NeuralInstancesRequest(BaseModel):
     class_expression: str  # Class expression in the specified syntax
-    syntax: Literal["iri", "dl", "manchester"] = "iri"  # Syntax type for parsing the expression
+    syntax: Literal["iri", "dl", "manchester"] = (
+        "iri"  # Syntax type for parsing the expression
+    )
 
 
 class NeuralInstancesResponse(BaseModel):
@@ -60,63 +67,69 @@ class UploadEmbeddingResponse(BaseModel):
     message: str
 
 
-from enum import Enum
-from typing import Optional
-
 class JobStatus(str, Enum):
     PENDING = "pending"
     PROCESSING = "processing"
     COMPLETED = "completed"
     FAILED = "failed"
 
+
 # Add job store
 NEURAL_ONTOLOGY_JOBS = {}
 
+
 @router.post("/create", response_model=CreateNeuralOntologyJobResponse)
-async def create_neural_ontology(request: CreateNeuralOntologyRequest, background_tasks: BackgroundTasks):
+def create_neural_ontology(
+    request: CreateNeuralOntologyRequest, background_tasks: BackgroundTasks
+):
     """Start neural ontology creation as background job"""
-    result = ONTOLOGY_STORE.get(request.ontology_id)
-    if result is None:
-        raise HTTPException(status_code=404, detail="Ontology ID not found.")
-    
-    ont, filename = result
+    with ONTOLOGIES.locked(request.ontology_id):
+        pass
     job_id = str(uuid.uuid4())
-    
+
     # Initialize job status
     NEURAL_ONTOLOGY_JOBS[job_id] = {
         "status": JobStatus.PENDING,
         "neural_ontology_id": None,
         "message": None,
-        "error": None
+        "error": None,
     }
-    
+
     # Start background task
-    background_tasks.add_task(_create_neural_ontology_background, job_id, request, ont)
-    
+    background_tasks.add_task(_create_neural_ontology_background, job_id, request)
+
     return {
         "job_id": job_id,
         "status": JobStatus.PENDING,
-        "message": "Neural ontology creation started"
+        "message": "Neural ontology creation started",
     }
 
-async def _create_neural_ontology_background(job_id: str, request: CreateNeuralOntologyRequest, ont):
+
+def _create_neural_ontology_background(
+    job_id: str, request: CreateNeuralOntologyRequest
+):
     """Background task to create neural ontology"""
     NEURAL_ONTOLOGY_JOBS[job_id]["status"] = JobStatus.PROCESSING
-    
+
     try:
-        neural_oid = str(uuid.uuid4())
-        
         if request.path_neural_embedding:
             if not os.path.exists(request.path_neural_embedding):
-                raise ValueError(f"Embedding path not found: {request.path_neural_embedding}")
-            neural_ont = NeuralOntology(path_neural_embedding=request.path_neural_embedding)
+                raise ValueError(
+                    f"Embedding path not found: {request.path_neural_embedding}"
+                )
+            neural_ont = NeuralOntology(
+                path_neural_embedding=request.path_neural_embedding
+            )
             message = f"Neural ontology created from embedding: {request.path_neural_embedding}"
         elif request.retrain:
             with tempfile.NamedTemporaryFile(delete=False, suffix=".owl") as tmp:
                 tmp_path = tmp.name
             try:
-                ont.save(IRI.create(tmp_path))
-                neural_ont = NeuralOntology(path_neural_embedding=tmp_path, train_if_not_exists=True)
+                with ONTOLOGIES.locked(request.ontology_id) as (ont, _):
+                    ont.save(IRI.create(tmp_path))
+                neural_ont = NeuralOntology(
+                    path_neural_embedding=tmp_path, train_if_not_exists=True
+                )
                 message = "Neural ontology created."
             finally:
                 try:
@@ -125,24 +138,25 @@ async def _create_neural_ontology_background(job_id: str, request: CreateNeuralO
                     pass
         else:
             raise ValueError("Either provide path_neural_embedding or set retrain=True")
-        
-        NEURAL_ONTOLOGY_STORE[neural_oid] = (neural_ont, request.ontology_id)
-        NEURAL_ONTOLOGY_LOCKS[neural_oid] = asyncio.Lock()
-        
+
+        with ONTOLOGIES.locked(request.ontology_id):
+            neural_oid = NEURAL_ONTOLOGIES.add((neural_ont, request.ontology_id))
+
         NEURAL_ONTOLOGY_JOBS[job_id] = {
             "status": JobStatus.COMPLETED,
             "neural_ontology_id": neural_oid,
             "ontology_id": request.ontology_id,
             "message": message,
-            "error": None
+            "error": None,
         }
     except Exception as e:
         NEURAL_ONTOLOGY_JOBS[job_id] = {
             "status": JobStatus.FAILED,
             "neural_ontology_id": None,
             "message": None,
-            "error": str(e)
+            "error": str(e),
         }
+
 
 @router.get("/create/status/{job_id}")
 async def get_job_status(job_id: str):
@@ -151,141 +165,102 @@ async def get_job_status(job_id: str):
     if not job:
         raise HTTPException(status_code=404, detail="Job not found")
     return job
-    
+
+
 @router.post("/upload-embedding", response_model=UploadEmbeddingResponse)
-async def upload_embedding(
-    ontology_id: str,
-    embedding_file: UploadFile = File(...)
-):
-    """
-    Upload a pre-trained embedding file for a neural ontology.
-    This creates a new neural ontology from the uploaded embedding.
-    """
-    result = ONTOLOGY_STORE.get(ontology_id)
-    if result is None:
-        raise HTTPException(status_code=404, detail="Ontology ID not found.")
-    
-    # Save the uploaded embedding to a temporary location
-    # In production, you'd save this to a persistent storage
+async def upload_embedding(ontology_id: str, embedding_file: UploadFile = File(...)):
     embedding_data = await embedding_file.read()
     if not embedding_data:
         raise HTTPException(status_code=400, detail="Empty embedding file.")
-    
-    with tempfile.TemporaryDirectory() as tmpdir:
-        embedding_path = os.path.join(tmpdir, "embedding")
-        os.makedirs(embedding_path, exist_ok=True)
-        
-        # Save the file
-        file_path = os.path.join(embedding_path, embedding_file.filename or "model.pt")
-        with open(file_path, "wb") as f:
-            f.write(embedding_data)
-        
-        def _create_from_upload():
-            try:
-                neural_oid = str(uuid.uuid4())
-                neural_ont = NeuralOntology(path_neural_embedding=embedding_path)
-                
-                NEURAL_ONTOLOGY_STORE[neural_oid] = (neural_ont, ontology_id)
-                NEURAL_ONTOLOGY_LOCKS[neural_oid] = asyncio.Lock()
-                
-                return UploadEmbeddingResponse(
-                    neural_ontology_id=neural_oid,
-                    message=f"Neural ontology created from uploaded embedding: {embedding_file.filename}"
+
+    def create_from_upload():
+        with ONTOLOGIES.locked(ontology_id):
+            pass
+        try:
+            with tempfile.TemporaryDirectory() as directory:
+                with zipfile.ZipFile(io.BytesIO(embedding_data)) as archive:
+                    for member in archive.infolist():
+                        path = PurePosixPath(member.filename.replace("\\", "/"))
+                        if path.is_absolute() or ".." in path.parts:
+                            raise ValueError(
+                                "Embedding archive contains an invalid path."
+                            )
+                    archive.extractall(directory)
+                configs = list(Path(directory).rglob("configuration.json"))
+                if len(configs) != 1:
+                    raise ValueError(
+                        "Upload a ZIP containing one complete pretrained model with configuration.json."
+                    )
+                neural_ont = NeuralOntology(
+                    path_neural_embedding=str(configs[0].parent)
                 )
-            except Exception as e:
-                raise HTTPException(status_code=500, detail=f"Failed to create neural ontology: {str(e)}")
-        
-        return await asyncio.to_thread(_create_from_upload)
+                with ONTOLOGIES.locked(ontology_id):
+                    neural_oid = NEURAL_ONTOLOGIES.add((neural_ont, ontology_id))
+            return UploadEmbeddingResponse(
+                neural_ontology_id=neural_oid,
+                message="Neural ontology created from uploaded embedding.",
+            )
+        except OntologyNotFound:
+            raise
+        except zipfile.BadZipFile as exc:
+            raise HTTPException(
+                status_code=400,
+                detail="Upload a ZIP containing the complete pretrained model.",
+            ) from exc
+        except Exception as exc:
+            raise HTTPException(
+                status_code=400, detail=f"Failed to create neural ontology: {exc}"
+            ) from exc
+
+    return await asyncio.to_thread(create_from_upload)
 
 
 @router.post("/{neural_oid}/instances", response_model=NeuralInstancesResponse)
-async def get_neural_instances(neural_oid: str, request: NeuralInstancesRequest):
-    """
-    Get instances of a class expression using embedding-based reasoning (EBR).
-    
-    EBR uses knowledge graph embeddings to approximate reasoning tasks,
-    retrieving instances based on a scoring function rather than strict logical deduction.
-    
-    Class Expression Syntax:
-    - "iri": Simple class IRI (e.g., "http://example.com/family#Person")
-    - "dl": Description Logic syntax (e.g., "∃ hasChild.male")
-    - "manchester": Manchester syntax (e.g., "female and (hasChild max 2 person)")
-    """
-    result = NEURAL_ONTOLOGY_STORE.get(neural_oid)
-    if result is None:
-        raise HTTPException(status_code=404, detail="Neural Ontology ID not found.")
-    
-    neural_ont, ontology_id = result
-    
-    # Get the underlying regular ontology for namespace resolution
-    ontology_result = ONTOLOGY_STORE.get(ontology_id)
-    if ontology_result is None:
-        raise HTTPException(status_code=404, detail="Underlying Ontology ID not found.")
-    
-    ont, _ = ontology_result
-    lock = NEURAL_ONTOLOGY_LOCKS.setdefault(neural_oid, asyncio.Lock())
-    
-    async def _get_instances():
-        async with lock:
+def get_neural_instances(neural_oid: str, request: NeuralInstancesRequest):
+    with NEURAL_ONTOLOGIES.locked(neural_oid) as (_, ontology_id):
+        pass
+    with ONTOLOGIES.locked(ontology_id) as (ont, _):
+        with NEURAL_ONTOLOGIES.locked(neural_oid) as (neural_ont, _):
             try:
-                # Initialize EBR
+                expression = build_class_expression(
+                    request.class_expression, ont, request.syntax
+                )
+            except ValueError as exc:
+                raise HTTPException(status_code=400, detail=str(exc)) from exc
+            try:
                 reasoner = EBR(ontology=neural_ont)
-                
-                # Parse the class expression with support for complex expressions
-                # Use the underlying regular ontology for namespace resolution
-                try:
-                    class_expression = build_class_expression(
-                        request.class_expression,
-                        ont,  # Use regular ontology for namespace resolution
-                        request.syntax
+                individuals = [
+                    IndividualItem(
+                        iri=ind.str, name=ind.str.split("#")[-1].split("/")[-1]
                     )
-                except ValueError as e:
-                    raise HTTPException(status_code=400, detail=str(e))
-                
-                print(class_expression)
-                # Get instances
-                instances = reasoner.instances(class_expression)
-                # Convert to response format
-                individuals = []
-                for ind in instances:
-                    iri_str = ind.iri.as_str()
-                    name = iri_str.split('#')[-1].split('/')[-1]
-                    individuals.append(IndividualItem(iri=iri_str, name=name))
-                
+                    for ind in reasoner.instances(expression)
+                ]
                 return NeuralInstancesResponse(
                     neural_ontology_id=neural_oid,
                     class_expression=request.class_expression,
-                    individuals=individuals
+                    individuals=individuals,
                 )
-            except HTTPException:
-                raise
-            except Exception as e:
-                raise HTTPException(status_code=500, detail=f"Neural reasoning failed: {str(e)}")
-    
-    return await _get_instances()
+            except Exception as exc:
+                raise HTTPException(
+                    status_code=500, detail=f"Neural reasoning failed: {exc}"
+                ) from exc
 
 
 @router.delete("/{neural_oid}")
-async def delete_neural_ontology(neural_oid: str):
-    """Delete a neural ontology."""
-    if neural_oid not in NEURAL_ONTOLOGY_STORE:
-        raise HTTPException(status_code=404, detail="Neural Ontology ID not found.")
-    
-    del NEURAL_ONTOLOGY_STORE[neural_oid]
-    if neural_oid in NEURAL_ONTOLOGY_LOCKS:
-        del NEURAL_ONTOLOGY_LOCKS[neural_oid]
-    
+def delete_neural_ontology(neural_oid: str):
+    NEURAL_ONTOLOGIES.delete(neural_oid)
     return {"ok": True, "deleted": neural_oid}
 
 
 @router.get("")
-async def list_neural_ontologies():
-    """List all neural ontologies."""
+def list_neural_ontologies():
     ontologies = []
-    for neural_oid, (_, ontology_id) in NEURAL_ONTOLOGY_STORE.items():
-        ontologies.append({
-            "neural_ontology_id": neural_oid,
-            "ontology_id": ontology_id
-        })
+    for neural_oid in NEURAL_ONTOLOGIES.ids():
+        try:
+            with NEURAL_ONTOLOGIES.locked(neural_oid) as (_, ontology_id):
+                ontologies.append(
+                    {"neural_ontology_id": neural_oid, "ontology_id": ontology_id}
+                )
+        except OntologyNotFound:
+            continue
     return {"neural_ontologies": ontologies}
-
