@@ -27,7 +27,7 @@ export default function GeneratePage() {
 
   const [workspace, setWorkspace] = useState("source");
   const [text, setText] = useState("");
-  const [connection, setConnection] = useState<Connection>({ apiBase: "https://models.github.ai/inference", apiKey: "", modelName: "", protocol: "openai" });
+  const [connection, setConnection] = useState<Connection>({ apiBase: "https://openrouter.ai/api/v1", apiKey: "", modelName: "", protocol: "openai" });
   const { apiKey, apiBase, modelName, protocol: apiProtocol } = connection;
   const [ontologyNamespace, setOntologyNamespace] = useState("http://example.com/ontogen#");
   const [filename, setFilename] = useState("generated_ontology.owl");

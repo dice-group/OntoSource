@@ -313,12 +313,12 @@
       "ProviderConnection retains associated field labels and a status region for live catalog updates, empty states and discovery errors; model entry remains usable when discovery is unavailable."
     ],
     "validation": {
-      "status": "Backend 38 tests and frontend 18 tests passed. Production build passed. Desktop browser checks at 1440px and 1280px passed. Impeccable finish review disposition: ship after confirming reasoning tool continuity.",
+      "status": "Backend 38 tests and frontend 22 tests passed. Production build passed. Desktop browser checks at 1440px and 1280px passed. Impeccable finish review disposition: ship after confirming reasoning tool continuity.",
       "notCanonized": "Legacy step-related CSS remains in the source, but numbered progression is not rendered by StepSection and is not system guidance. Semantic success/error styling and graph relation colors are retained for their data roles; they are not additional brand accents.",
       "tonalRamps": "No synthetic ramps recorded; source-truth colors only.",
       "testEvidence": {
         "backendTestsPassed": 38,
-        "frontendTestsPassed": 18,
+        "frontendTestsPassed": 22,
         "provenance": "Implementation agent test runs and desktop browser checks; finish reviewer confirmed the reported tool-continuity fix from source and capture."
       },
       "limitations": [
@@ -369,14 +369,13 @@
             "Hugging Face",
             "Mistral AI",
             "Cerebras",
-            "GitHub Models",
             "Together AI",
             "Fireworks AI",
             "DeepSeek",
             "Ollama \u00b7 local",
             "LM Studio \u00b7 local"
           ],
-          "presetCount": 14,
+          "presetCount": 13,
           "customOption": "Custom domain / gateway",
           "controls": [
             "Provider preset",
@@ -402,8 +401,10 @@
             "Show fetching state and catalog update time.",
             "Reset model choice on credential or connection edits; reset credentials when endpoint or protocol changes.",
             "Use a labeled password field with autocomplete disabled for the optional API key.",
-            "Expose discovery errors and empty catalog guidance through a status region."
-          ]
+            "Expose discovery errors and empty catalog guidance through a status region.",
+            "Non-JSON catalog responses show recovery guidance; retired GitHub Models endpoints explain retirement and require another provider."
+          ],
+          "defaultProvider": "OpenRouter; live catalog is available without a key, generation requires provider credentials."
         }
       },
       "Predict": {

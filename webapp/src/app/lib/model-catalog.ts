@@ -35,6 +35,10 @@ export async function fetchModelCatalog(
   signal?: AbortSignal,
 ) {
   const url = new URL(base);
+  if (url.hostname === "models.github.ai")
+    throw new Error(
+      "GitHub Models was retired on July 30, 2026. Choose another provider or a compatible gateway.",
+    );
   if (
     !["http:", "https:"].includes(url.protocol) ||
     url.username ||
@@ -53,8 +57,6 @@ export async function fetchModelCatalog(
     endpoint = `${normalized}/v1/models`;
   if (protocol === "gemini" && !/\/v1(beta)?$/.test(url.pathname))
     endpoint = `${normalized}/v1beta/models`;
-  if (url.hostname === "models.github.ai")
-    endpoint = `${url.origin}/catalog/models`;
   const headers: Record<string, string> = { Accept: "application/json" };
   if (protocol === "anthropic") {
     headers["anthropic-version"] = "2023-06-01";
@@ -85,7 +87,19 @@ export async function fetchModelCatalog(
           ? "The provider rejected these credentials. Check the API key and permissions."
           : `Model catalog returned HTTP ${response.status}. You can enter a model ID manually.`,
       );
-    const body: CatalogPage | Entry[] = await response.json();
+    const payload = await response.text();
+    let body: CatalogPage | Entry[];
+    try {
+      body = JSON.parse(payload);
+    } catch {
+      throw new Error(
+        "The model catalog returned a non-JSON response. Check the API base URL and protocol; a health endpoint or gateway may be responding instead. You can enter a model ID manually.",
+      );
+    }
+    if (!body || typeof body !== "object")
+      throw new Error(
+        "This provider does not expose a supported model catalog. Enter a model ID manually.",
+      );
     const entries = Array.isArray(body) ? body : body.data || body.models;
     if (!Array.isArray(entries))
       throw new Error(

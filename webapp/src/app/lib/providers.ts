@@ -74,12 +74,6 @@ export const PROVIDERS: Provider[] = [
     details: "https://inference-docs.cerebras.ai/quickstart",
   },
   {
-    id: "github",
-    name: "GitHub Models",
-    base: "https://models.github.ai/inference",
-    protocol: "openai",
-  },
-  {
     id: "together",
     name: "Together AI",
     base: "https://api.together.xyz/v1",

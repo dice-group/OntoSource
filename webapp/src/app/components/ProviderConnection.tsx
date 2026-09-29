@@ -43,9 +43,21 @@ export default function ProviderConnection({
           }),
           signal: controller.signal,
         });
-        const data = await response.json();
+        const payload = await response.text();
+        let data;
+        try {
+          data = JSON.parse(payload);
+        } catch {
+          throw new Error(
+            "The model discovery service returned a non-JSON response. Check your connection or gateway and retry. You can also enter a model ID manually.",
+          );
+        }
         if (!response.ok)
-          throw new Error(data.detail || "Cannot fetch the model catalog");
+          throw new Error(data?.detail || "Cannot fetch the model catalog");
+        if (!Array.isArray(data?.entries))
+          throw new Error(
+            "The model discovery service returned an unsupported catalog. Retry or enter a model ID manually.",
+          );
         if (!controller.signal.aborted) {
           setModels(data.entries);
           setUpdated(new Date(data.fetched_at).toLocaleTimeString());

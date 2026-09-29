@@ -82,3 +82,31 @@ test("zero token pricing requires explicit provider metadata", async (t) => {
   assert.deepEqual(models.filter((model) => model.freeTextTokens).map((model) => model.value), ["zero-tokens"]);
   assert.equal(models.some((model) => model.value === "image"), false);
 });
+
+test("plain text, HTML, and empty catalogs report actionable errors", async (t) => {
+  for (const body of ["OK ", "<html>Gateway status</html>", "", '{"data":']) {
+    t.mock.method(globalThis, "fetch", async () => new Response(body));
+    await assert.rejects(
+      fetchModelCatalog("https://provider.example/v1", "", "openai"),
+      (error) => !(error instanceof SyntaxError) && /non-JSON.*API base URL.*model ID manually/.test(error.message),
+    );
+  }
+});
+
+test("JSON primitives are rejected as unsupported catalogs", async (t) => {
+  for (const body of [null, "OK", true, 1]) {
+    t.mock.method(globalThis, "fetch", async () => Response.json(body));
+    await assert.rejects(fetchModelCatalog("https://provider.example/v1", "", "openai"), /supported model catalog/);
+  }
+});
+
+test("authentication errors take priority over non-JSON error bodies", async (t) => {
+  t.mock.method(globalThis, "fetch", async () => new Response("Unauthorized", { status: 401 }));
+  await assert.rejects(fetchModelCatalog("https://provider.example/v1", "", "openai"), /credentials/);
+});
+
+test("retired GitHub Models endpoints explain the retirement without making a request", async (t) => {
+  const mock = t.mock.method(globalThis, "fetch", async () => { throw new Error("must not fetch"); });
+  await assert.rejects(fetchModelCatalog("https://models.github.ai/inference", "key", "openai"), /GitHub Models was retired.*Choose another provider/);
+  assert.equal(mock.mock.callCount(), 0);
+});
