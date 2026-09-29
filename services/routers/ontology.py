@@ -224,11 +224,13 @@ def list_triples(
                         "datatype": str(x.datatype) if x.datatype else None,
                         "lang": x.language,
                     }
-                elif isinstance(x, (URIRef, BNode)):
+                elif isinstance(x, BNode):
+                    return "_:" + str(x)
+                elif isinstance(x, URIRef):
                     return str(x)
                 return str(x)
 
-            triples_out.append(TripleJSON(s=str(s), p=str(p), o=node_to_json(o)))
+            triples_out.append(TripleJSON(s=node_to_json(s), p=str(p), o=node_to_json(o)))
 
         return TriplesResponse(id=oid, total=total, triples=triples_out)
 

@@ -9,7 +9,7 @@ if not os.environ.get("JAVA_HOME") and not shutil.which("java"):
 from fastapi import FastAPI
 from fastapi.responses import JSONResponse
 
-from routers import ontology, modify, reasoning, neural_reasoning, generate_ontology
+from routers import ontology, modify, reasoning, neural_reasoning, generate_ontology, triples
 import store
 
 app = FastAPI(title="Ontology Upload API")
@@ -27,3 +27,5 @@ app.include_router(modify.router)
 app.include_router(reasoning.router)
 app.include_router(neural_reasoning.router)
 app.include_router(generate_ontology.router)
+
+app.include_router(triples.router)
