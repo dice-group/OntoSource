@@ -1,17 +1,15 @@
-import { mutationOptions } from "@tanstack/react-query";
-import { useQueryClient } from "@tanstack/react-query";
+import { mutationOptions, type QueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
-import { useRemoveOntology } from "../store/ontology-store";
 
-export default function createDeleteOntologyMutationOptions() {
-  const queryClient = useQueryClient();
-  const removeOntology = useRemoveOntology();
+export default function createDeleteOntologyMutationOptions(queryClient: QueryClient, onDeleted: (id: string) => void) {
   return mutationOptions({
     mutationFn: deleteOntology,
-    onSuccess: (id: string) => {
-      removeOntology(id);
-      queryClient.invalidateQueries({ refetchType: "all" });
-     
+    onSuccess: (_data, id: string) => {
+      onDeleted(id);
+      queryClient.removeQueries({ predicate: (query) => query.queryKey[1] === id });
+      queryClient.invalidateQueries({ queryKey: ["ontology-summary-all"] });
+      queryClient.invalidateQueries({ queryKey: ["neural-ontologies"] });
+
       toast.success("Ontology deleted successfully!");
     },
     onError: (error: Error) => {

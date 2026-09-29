@@ -1,15 +1,16 @@
-import { mutationOptions } from "@tanstack/react-query";
-import { useQueryClient } from "@tanstack/react-query";
-import createSummaryAllQueryOptions from "../queryOptions/createSummaryAllQueryOptions";
+import { invalidateOntologyQueries } from "../lib/ontology-cache";
+import { mutationOptions, type QueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
 
-export default function createAddSubclassOfMutationOptions(ontologyId: string) {
-  const queryClient = useQueryClient();
+export default function createAddSubclassOfMutationOptions(
+  queryClient: QueryClient,
+  ontologyId: string,
+) {
   return mutationOptions({
     mutationFn: (payload: AddSubclassOfPayload) =>
       addSubclassOf(ontologyId, payload),
     onSuccess: (data) => {
-      queryClient.invalidateQueries();
+      invalidateOntologyQueries(queryClient, ontologyId);
       toast.success(data.message || "Subclass axiom added successfully!");
     },
     onError: (error: Error) => {

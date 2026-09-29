@@ -1,9 +1,7 @@
 import { mutationOptions } from "@tanstack/react-query";
-import { useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
 
 export default function createNeuralOntologyMutationOptions() {
-  const queryClient = useQueryClient();
   return mutationOptions({
     mutationFn: createNeuralOntology,
     onSuccess: (data) => {

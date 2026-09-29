@@ -14,6 +14,7 @@ export type GenerateOntologyRequest = {
   text: string;
   model_name?: string;
   api_key: string;
+  api_protocol?: "openai" | "anthropic" | "gemini" | "ollama";
   api_base?: string;
   ontology_namespace?: string;
   filename?: string;

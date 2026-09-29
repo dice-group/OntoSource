@@ -1,6 +1,6 @@
 from enum import Enum
 from fastapi import APIRouter, HTTPException, UploadFile, File, BackgroundTasks
-from pydantic import BaseModel, model_validator
+from pydantic import BaseModel, model_validator, Field
 from typing import Optional, List, Literal
 import asyncio
 import tempfile
@@ -29,6 +29,11 @@ class CreateNeuralOntologyRequest(BaseModel):
     ontology_id: str  # Reference to an existing ontology
     path_neural_embedding: Optional[str] = None  # Path to pre-trained embedding
     retrain: bool = False  # Whether to retrain the model
+
+    model: Literal["Keci", "DistMult", "ComplEx", "TransE"] = "Keci"
+    num_epochs: int = Field(default=100, ge=1, le=2000)
+    embedding_dim: int = Field(default=128, ge=16, le=1024, multiple_of=8)
+    batch_size: int = Field(default=64, ge=2, le=4096)
 
     @model_validator(mode="after")
     def validate_source(self):
@@ -122,20 +127,28 @@ def _create_neural_ontology_background(
             )
             message = f"Neural ontology created from embedding: {request.path_neural_embedding}"
         elif request.retrain:
-            with tempfile.NamedTemporaryFile(delete=False, suffix=".owl") as tmp:
-                tmp_path = tmp.name
-            try:
+            with tempfile.TemporaryDirectory(
+                prefix="ontosource-training-"
+            ) as directory:
+                tmp_path = os.path.join(directory, "ontology.owl")
                 with ONTOLOGIES.locked(request.ontology_id) as (ont, _):
                     ont.save(IRI.create(tmp_path))
                 neural_ont = NeuralOntology(
-                    path_neural_embedding=tmp_path, train_if_not_exists=True
+                    path_neural_embedding=tmp_path,
+                    train_if_not_exists=True,
+                    device="cpu",
+                    training_params={
+                        "model": request.model,
+                        "num_epochs": request.num_epochs,
+                        "embedding_dim": request.embedding_dim,
+                        "batch_size": request.batch_size,
+                        "trainer": "torchCPUTrainer",
+                        "scoring_technique": "KvsAll",
+                        "eval_model": None,
+                        "num_core": 0,
+                    },
                 )
-                message = "Neural ontology created."
-            finally:
-                try:
-                    os.unlink(tmp_path)
-                except Exception:
-                    pass
+                message = f"Neural ontology trained with {request.model}."
         else:
             raise ValueError("Either provide path_neural_embedding or set retrain=True")
 
@@ -264,3 +277,55 @@ def list_neural_ontologies():
         except OntologyNotFound:
             continue
     return {"neural_ontologies": ontologies}
+
+
+class LinkPredictionRequest(BaseModel):
+    head: Optional[str] = None
+    relation: Optional[str] = None
+    tail: Optional[str] = None
+    top_k: int = Field(default=10, ge=1, le=100)
+
+    @model_validator(mode="after")
+    def validate_query(self):
+        if sum(bool(value) for value in (self.head, self.relation, self.tail)) != 2:
+            raise ValueError(
+                "Provide exactly two of head, relation and tail; leave the prediction target empty."
+            )
+        return self
+
+
+@router.post("/{neural_oid}/predict-links")
+def predict_links(neural_oid: str, request: LinkPredictionRequest):
+    with NEURAL_ONTOLOGIES.locked(neural_oid) as (neural_ont, _):
+        model = neural_ont.model
+        for value, vocabulary in (
+            (request.head, model.entity_to_idx),
+            (request.tail, model.entity_to_idx),
+            (request.relation, model.relation_to_idx),
+        ):
+            if value and value not in vocabulary:
+                raise HTTPException(
+                    status_code=400,
+                    detail=f"The trained model does not contain {value}",
+                )
+        try:
+            vocabulary = (
+                model.relation_to_idx if not request.relation else model.entity_to_idx
+            )
+            rows = model.predict_topk(
+                h=[request.head] if request.head else None,
+                r=[request.relation] if request.relation else None,
+                t=[request.tail] if request.tail else None,
+                topk=min(request.top_k, len(vocabulary)),
+            )
+            return {
+                "predictions": [
+                    {"iri": iri, "score": float(score)}
+                    for row in rows
+                    for iri, score in row
+                ]
+            }
+        except Exception as exc:
+            raise HTTPException(
+                status_code=500, detail=f"Link prediction failed: {exc}"
+            ) from exc

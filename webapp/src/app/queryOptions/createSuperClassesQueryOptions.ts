@@ -1,7 +1,7 @@
 import { queryOptions } from "@tanstack/react-query";
 
 export interface ClassItem {
-  iri: string;
+  iri: string | null;
   name: string;
 }
 

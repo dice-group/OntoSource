@@ -1,11 +1,8 @@
 import { mutationOptions } from "@tanstack/react-query";
-import { useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
 
 
-//TODO: do we need this?? 
 export default function createSaveOntologyMutationOptions(ontologyId: string) {
-  const queryClient = useQueryClient();
   return mutationOptions({
     mutationFn: (path: string) => saveOntology(ontologyId, path),
     onSuccess: (data) => {

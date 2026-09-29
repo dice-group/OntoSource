@@ -29,63 +29,20 @@ export interface Ontology {
   summary: OntologySummary;
 }
 
-interface OntologyState {
-  ontologies: Ontology[];
+interface OntologySelection {
   selectedOntologyId: string | null;
-  isLoading: boolean;
-  error: string | null;
-}
-
-interface OntologyActions {
-  setOntologies: (ontologies: Ontology[]) => void;
-  addOntology: (ontology: Ontology) => void;
-  removeOntology: (id: string) => void;
   setSelectedOntology: (id: string | null) => void;
-  setLoading: (loading: boolean) => void;
-  setError: (error: string | null) => void;
+  removeOntology: (id: string) => void;
 }
 
-const useOntologyStore = create<OntologyState & OntologyActions>((set) => ({
-  ontologies: [],
+const useOntologyStore = create<OntologySelection>((set) => ({
   selectedOntologyId: null,
-  isLoading: false,
-  error: null,
-
-  setOntologies: (ontologies) => set({ ontologies }),
-  addOntology: (ontology) =>
-    set((state) => ({
-      ontologies: [...state.ontologies, ontology],
-    })),
-  removeOntology: (id) =>
-    set((state) => ({
-      ontologies: state.ontologies.filter((ont) => ont.id !== id),
-      selectedOntologyId:
-        state.selectedOntologyId === id ? null : state.selectedOntologyId,
-    })),
   setSelectedOntology: (id) => set({ selectedOntologyId: id }),
-  setLoading: (loading) => set({ isLoading: loading }),
-  setError: (error) => set({ error }),
+  removeOntology: (id) => set((state) => ({
+    selectedOntologyId: state.selectedOntologyId === id ? null : state.selectedOntologyId,
+  })),
 }));
 
-// Expose only the actions and selectors, not the whole store
-export const useOntologies = () =>
-  useOntologyStore((state) => state.ontologies);
-export const useSelectedOntologyId = () =>
-  useOntologyStore((state) => state.selectedOntologyId);
-export const useOntologyLoading = () =>
-  useOntologyStore((state) => state.isLoading);
-export const useOntologyError = () => useOntologyStore((state) => state.error);
-
-// Individual action selectors to avoid re-render issues
-export const useSetOntologies = () =>
-  useOntologyStore((state) => state.setOntologies);
-export const useAddOntology = () =>
-  useOntologyStore((state) => state.addOntology);
-export const useRemoveOntology = () =>
-  useOntologyStore((state) => state.removeOntology);
-export const useSetSelectedOntology = () =>
-  useOntologyStore((state) => state.setSelectedOntology);
-export const useSetOntologyLoading = () =>
-  useOntologyStore((state) => state.setLoading);
-export const useSetOntologyError = () =>
-  useOntologyStore((state) => state.setError);
+export const useSelectedOntologyId = () => useOntologyStore((state) => state.selectedOntologyId);
+export const useSetSelectedOntology = () => useOntologyStore((state) => state.setSelectedOntology);
+export const useRemoveOntology = () => useOntologyStore((state) => state.removeOntology);

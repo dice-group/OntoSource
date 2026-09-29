@@ -1,12 +1,18 @@
 from fastapi import APIRouter, HTTPException
-from pydantic import BaseModel
+from pydantic import BaseModel, Field
 from typing import Optional, Literal, List
 import os
+import jpype
 import tempfile
 from contextlib import contextmanager
 
-from owlapy import owl_expression_to_dl
+from owlapy import (
+    owl_expression_to_dl,
+    owl_expression_to_manchester,
+    owl_expression_to_sparql,
+)
 from owlapy.owl_reasoner import StructuralReasoner, SyncReasoner
+from owlapy.owl_reasoner_rdflib import RDFLibReasoner
 from owlapy.class_expression import OWLClass
 from owlapy.iri import IRI
 from owlapy.owl_ontology import SyncOntology
@@ -25,19 +31,25 @@ def _sync_reasoner_for(ont, reasoner_name: str):
     try:
         ont.save(IRI.create(tmp_path))
         sync_ont = SyncOntology(tmp_path)
-        yield SyncReasoner(sync_ont, reasoner=reasoner_name)
+        with SyncReasoner(sync_ont, reasoner=reasoner_name) as reasoner:
+            yield reasoner
     finally:
         try:
             os.unlink(tmp_path)
         except OSError:
             pass
+        if jpype.isJVMStarted():
+            jpype.java.lang.Thread.detach()
 
 
 @contextmanager
 def _build_reasoner(ont, request):
     """Yield the reasoner selected by request.reasoner_type."""
-    if request.reasoner_type == "structural":
-        yield StructuralReasoner(
+    if request.reasoner_type in ("structural", "rdflib"):
+        reasoner_class = (
+            RDFLibReasoner if request.reasoner_type == "rdflib" else StructuralReasoner
+        )
+        yield reasoner_class(
             ont,
             property_cache=request.property_cache,
             negation_default=request.negation_default,
@@ -63,7 +75,7 @@ class InstancesRequest(BaseModel):
     syntax: Literal["iri", "dl", "manchester"] = (
         "iri"  # Syntax type for parsing the expression
     )
-    reasoner_type: Literal["structural", "sync"] = "structural"
+    reasoner_type: Literal["structural", "rdflib", "sync"] = "structural"
     # For StructuralReasoner
     property_cache: bool = True
     negation_default: bool = True
@@ -127,7 +139,7 @@ def get_instances(oid: str, request: InstancesRequest):
 
 class SuperClassesRequest(BaseModel):
     class_iri: str
-    reasoner_type: Literal["structural", "sync"] = "structural"
+    reasoner_type: Literal["structural", "rdflib", "sync"] = "structural"
     direct: bool = False
     only_named: bool = True
     # For StructuralReasoner
@@ -193,7 +205,7 @@ def get_super_classes(oid: str, request: SuperClassesRequest):
 
 class SubClassesRequest(BaseModel):
     class_iri: str
-    reasoner_type: Literal["structural", "sync"] = "structural"
+    reasoner_type: Literal["structural", "rdflib", "sync"] = "structural"
     direct: bool = False
     only_named: bool = True
     property_cache: bool = True
@@ -244,7 +256,7 @@ def get_sub_classes(oid: str, request: SubClassesRequest):
 
 class TypesRequest(BaseModel):
     individual_iri: str
-    reasoner_type: Literal["structural", "sync"] = "structural"
+    reasoner_type: Literal["structural", "rdflib", "sync"] = "structural"
     property_cache: bool = True
     negation_default: bool = True
     sub_properties: bool = False
@@ -287,3 +299,53 @@ def get_types(oid: str, request: TypesRequest):
             raise
         except Exception as e:
             raise HTTPException(status_code=500, detail=f"Reasoning failed: {str(e)}")
+
+
+class ConsistencyRequest(BaseModel):
+    sync_reasoner_name: Literal["HermiT", "Pellet", "JFact", "Openllet"] = "HermiT"
+    timeout: int = Field(default=60, ge=1, le=300)
+
+
+@router.post("/{oid}/consistency")
+def check_consistency(oid: str, request: ConsistencyRequest):
+    with ONTOLOGIES.locked(oid) as (ont, _):
+        try:
+            with _sync_reasoner_for(ont, request.sync_reasoner_name) as reasoner:
+                consistent = reasoner.has_consistent_ontology(timeout=request.timeout)
+            return {
+                "ontology_id": oid,
+                "consistent": consistent,
+                "reasoner": request.sync_reasoner_name,
+            }
+        except TimeoutError as exc:
+            raise HTTPException(
+                status_code=504,
+                detail="Consistency check timed out. Try a smaller ontology or a longer timeout.",
+            ) from exc
+        except Exception as exc:
+            raise HTTPException(
+                status_code=500, detail=f"Consistency check failed: {exc}"
+            ) from exc
+
+
+class ExpressionRequest(BaseModel):
+    class_expression: str = Field(min_length=1)
+    syntax: Literal["iri", "dl", "manchester"] = "iri"
+
+
+@router.post("/{oid}/expression")
+def convert_expression(oid: str, request: ExpressionRequest):
+    with ONTOLOGIES.locked(oid) as (ont, _):
+        try:
+            expression = build_class_expression(
+                request.class_expression, ont, request.syntax
+            )
+            return {
+                "dl": owl_expression_to_dl(expression),
+                "manchester": owl_expression_to_manchester(expression),
+                "sparql": owl_expression_to_sparql(expression),
+            }
+        except Exception as exc:
+            raise HTTPException(
+                status_code=400, detail=f"Cannot convert expression: {exc}"
+            ) from exc

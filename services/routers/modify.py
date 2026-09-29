@@ -92,6 +92,7 @@ class RemoveAxiomRequest(BaseModel):
         "object_property_assertion",
         "data_property_assertion",
         "declaration",
+        "subclass_of",
     ]
     individual_iri: Optional[str] = None
     class_namespace: Optional[str] = None
@@ -102,6 +103,10 @@ class RemoveAxiomRequest(BaseModel):
     object_iri: Optional[str] = None
     literal: Optional[LiteralValue] = None
     entity_iri: Optional[str] = None
+    subclass_namespace: Optional[str] = None
+    subclass_name: Optional[str] = None
+    superclass_namespace: Optional[str] = None
+    superclass_name: Optional[str] = None
 
     @model_validator(mode="after")
     def validate_axiom_fields(self):
@@ -120,6 +125,12 @@ class RemoveAxiomRequest(BaseModel):
                 "literal",
             ),
             "declaration": ("entity_iri",),
+            "subclass_of": (
+                "subclass_namespace",
+                "subclass_name",
+                "superclass_namespace",
+                "superclass_name",
+            ),
         }
         missing = [
             name for name in required[self.axiom_type] if not getattr(self, name)
@@ -323,29 +334,45 @@ def remove_axiom(oid: str, request: RemoveAxiomRequest):
                 success=True, message="Axiom removed successfully."
             )
 
+        elif request.axiom_type == "subclass_of":
+            axiom = OWLSubClassOfAxiom(
+                OWLClass(
+                    IRI(
+                        normalize_namespace(request.subclass_namespace),
+                        request.subclass_name,
+                    )
+                ),
+                OWLClass(
+                    IRI(
+                        normalize_namespace(request.superclass_namespace),
+                        request.superclass_name,
+                    )
+                ),
+            )
+
         elif request.axiom_type == "declaration":
             entity_iri = IRI.create(request.entity_iri)
 
             for cls in ont.classes_in_signature():
-                if cls.get_iri() == entity_iri:
+                if cls.iri == entity_iri:
                     axiom = OWLDeclarationAxiom(cls)
                     break
 
             if axiom is None:
                 for prop in ont.object_properties_in_signature():
-                    if prop.get_iri() == entity_iri:
+                    if prop.iri == entity_iri:
                         axiom = OWLDeclarationAxiom(prop)
                         break
 
             if axiom is None:
                 for prop in ont.data_properties_in_signature():
-                    if prop.get_iri() == entity_iri:
+                    if prop.iri == entity_iri:
                         axiom = OWLDeclarationAxiom(prop)
                         break
 
             if axiom is None:
                 for ind in ont.individuals_in_signature():
-                    if ind.get_iri() == entity_iri:
+                    if ind.iri == entity_iri:
                         axiom = OWLDeclarationAxiom(ind)
                         break
 

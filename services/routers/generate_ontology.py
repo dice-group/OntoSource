@@ -6,6 +6,7 @@ import uuid
 import asyncio
 import tempfile
 import os
+import jpype
 from store import ONTOLOGIES
 
 router = APIRouter(prefix="/generate", tags=["generate"])
@@ -21,7 +22,8 @@ class JobStatus(str, Enum):
 class GenerateOntologyRequest(BaseModel):
     text: str
     model_name: str = "gpt-4o"
-    api_key: str
+    api_key: str = ""
+    api_protocol: Optional[Literal["openai", "anthropic", "gemini", "ollama"]] = None
     api_base: str = "https://models.github.ai/inference"
     ontology_namespace: str = "http://example.com/ontogen#"
     filename: str = "generated_ontology.owl"
@@ -94,12 +96,13 @@ async def _generate_ontology_background(job_id: str, request: GenerateOntologyRe
     try:
 
         def _generate():
-            from owlapy.agen_kg.agent import AGenKG
+            from generation import ProviderGenerator
 
-            agenkg = AGenKG(
-                model=request.model_name,
-                api_key=request.api_key,
-                api_base=request.api_base,
+            model_name, api_base = provider_connection(request)
+            agenkg = ProviderGenerator(
+                model=model_name,
+                api_key=request.api_key or "local",
+                api_base=api_base,
                 temperature=request.temperature,
                 seed=request.seed,
                 cache=request.cache,
@@ -154,6 +157,8 @@ async def _generate_ontology_background(job_id: str, request: GenerateOntologyRe
             finally:
                 if os.path.exists(temp_path):
                     os.remove(temp_path)
+                if jpype.isJVMStarted():
+                    jpype.java.lang.Thread.detach()
 
         oid, filename, ontology_iri = await asyncio.to_thread(_generate)
 
@@ -183,3 +188,21 @@ async def get_generation_status(job_id: str):
     if not job:
         raise HTTPException(status_code=404, detail="Job not found")
     return job
+
+
+def provider_connection(request: GenerateOntologyRequest):
+    if not request.api_protocol:
+        return "openai/" + request.model_name, request.api_base
+    prefix = {
+        "openai": "openai",
+        "anthropic": "anthropic",
+        "gemini": "gemini",
+        "ollama": "ollama_chat",
+    }[request.api_protocol]
+    model = request.model_name
+    base = request.api_base.rstrip("/")
+    if request.api_protocol in ("anthropic", "ollama"):
+        base = base.removesuffix("/v1").removesuffix("/api")
+    if request.api_protocol == "gemini":
+        base = base.removesuffix("/v1beta").removesuffix("/v1")
+    return f"{prefix}/{model}", base

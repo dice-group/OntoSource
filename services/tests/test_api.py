@@ -211,7 +211,7 @@ def test_failed_generation_cleans_temporary_file(monkeypatch, tmp_path):
             raise ValueError("generation failed")
 
     monkeypatch.setitem(
-        sys.modules, "owlapy.agen_kg.agent", types.SimpleNamespace(AGenKG=Generator)
+        sys.modules, "generation", types.SimpleNamespace(ProviderGenerator=Generator)
     )
     job_id = "failure-test"
     generate_ontology.GENERATION_JOBS[job_id] = {}

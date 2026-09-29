@@ -1,3 +1,11 @@
+import os
+import shutil
+
+if not os.environ.get("JAVA_HOME") and not shutil.which("java"):
+    from jdk4py import JAVA_HOME
+
+    os.environ["JAVA_HOME"] = str(JAVA_HOME)
+
 from fastapi import FastAPI
 from fastapi.responses import JSONResponse
 

@@ -1,18 +1,16 @@
-import { mutationOptions } from "@tanstack/react-query";
-import { useQueryClient } from "@tanstack/react-query";
-import createSummaryAllQueryOptions from "../queryOptions/createSummaryAllQueryOptions";
-import createOntologyEntitiesQueryOptions from "../queryOptions/createOntologyEntitiesQueryOptions";
+import { invalidateOntologyQueries } from "../lib/ontology-cache";
+import { mutationOptions, type QueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
 
 export default function createAddClassAssertionMutationOptions(
+  queryClient: QueryClient,
   ontologyId: string,
 ) {
-  const queryClient = useQueryClient();
   return mutationOptions({
     mutationFn: (payload: AddClassAssertionPayload) =>
       addClassAssertion(ontologyId, payload),
     onSuccess: (data) => {
-      queryClient.invalidateQueries();
+      invalidateOntologyQueries(queryClient, ontologyId);
       toast.success(data.message || "Class assertion added successfully!");
     },
     onError: (error: Error) => {

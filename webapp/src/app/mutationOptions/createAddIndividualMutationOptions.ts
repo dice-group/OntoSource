@@ -1,15 +1,16 @@
-import { mutationOptions } from "@tanstack/react-query";
-import { useQueryClient } from "@tanstack/react-query";
-import createSummaryAllQueryOptions from "../queryOptions/createSummaryAllQueryOptions";
+import { invalidateOntologyQueries } from "../lib/ontology-cache";
+import { mutationOptions, type QueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
 
-export default function createAddIndividualMutationOptions(ontologyId: string) {
-  const queryClient = useQueryClient();
+export default function createAddIndividualMutationOptions(
+  queryClient: QueryClient,
+  ontologyId: string,
+) {
   return mutationOptions({
     mutationFn: (payload: AddIndividualPayload) =>
       addIndividual(ontologyId, payload),
     onSuccess: (data) => {
-      queryClient.invalidateQueries();
+      invalidateOntologyQueries(queryClient, ontologyId);
       toast.success(data.message || "Individual added successfully!");
     },
     onError: (error: Error) => {

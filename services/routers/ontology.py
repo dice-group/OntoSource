@@ -266,3 +266,33 @@ def get_entities(oid: str):
             object_properties=object_properties,
             data_properties=data_properties,
         )
+
+
+@router.get("/{oid}/download")
+def download_ontology(
+    oid: str, format: str = Query("xml", pattern="^(xml|turtle|nt)$")
+):
+    from fastapi import Response
+    from owlapy.iri import IRI
+    from pathlib import Path
+    from urllib.parse import quote
+
+    with ONTOLOGIES.locked(oid) as (ont, filename):
+        with tempfile.TemporaryDirectory() as directory:
+            path = os.path.join(directory, "ontology.owl")
+            ont.save(IRI.create(path))
+            graph = Graph().parse(path)
+            content = graph.serialize(format=format, encoding="utf-8")
+    suffix, media_type = {
+        "xml": ("owl", "application/rdf+xml"),
+        "turtle": ("ttl", "text/turtle"),
+        "nt": ("nt", "application/n-triples"),
+    }[format]
+    name = f"{Path(filename).stem}.{suffix}"
+    return Response(
+        content,
+        media_type=media_type,
+        headers={
+            "Content-Disposition": f"attachment; filename*=UTF-8''{quote(name, safe='')}"
+        },
+    )

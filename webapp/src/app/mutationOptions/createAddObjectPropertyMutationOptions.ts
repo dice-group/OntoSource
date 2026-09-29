@@ -1,17 +1,16 @@
-import { mutationOptions } from "@tanstack/react-query";
-import { useQueryClient } from "@tanstack/react-query";
-import createSummaryAllQueryOptions from "../queryOptions/createSummaryAllQueryOptions";
+import { invalidateOntologyQueries } from "../lib/ontology-cache";
+import { mutationOptions, type QueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
 
 export default function createAddObjectPropertyMutationOptions(
+  queryClient: QueryClient,
   ontologyId: string,
 ) {
-  const queryClient = useQueryClient();
   return mutationOptions({
     mutationFn: (payload: AddObjectPropertyPayload) =>
       addObjectProperty(ontologyId, payload),
     onSuccess: (data) => {
-      queryClient.invalidateQueries();
+      invalidateOntologyQueries(queryClient, ontologyId);
       toast.success(data.message || "Object property added successfully!");
     },
     onError: (error: Error) => {

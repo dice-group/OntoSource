@@ -8,7 +8,7 @@ export interface IndividualItem {
 export interface InstancesRequest {
   class_expression: string;
   syntax?: "iri" | "dl" | "manchester";
-  reasoner_type?: "structural" | "sync";
+  reasoner_type?: "structural" | "rdflib" | "sync";
   property_cache?: boolean;
   negation_default?: boolean;
   sub_properties?: boolean;
