@@ -2,9 +2,21 @@
 
 An web-based platform for ontology engineering and knowledge graph exploration - intuitive editing, visualization, and reasoning, powered by [OWLAPY](https://github.com/dice-group/owlapy).
 
-![Visualisation Overview](ontosource_ui.png)
+## Visualize Knowledge Graphs
 
-![Generation Overview](ontosource_ui2.png)
+![Family knowledge graph with classes, individuals, and labeled relationships](ontosource_ui.png)
+
+## Edit Ontologies
+
+![Ontology editor with a family object property assertion](ontosource_edit.png)
+
+## Generate Ontologies from Text
+
+![Ontology generation with family source text and extraction instructions](ontosource_ui2.png)
+
+## Predict with Reasoners
+
+![Reasoning dashboard showing 35 matching individuals for the Grandmother class](ontosource_predict.png)
 
 ## Prerequisites
 
