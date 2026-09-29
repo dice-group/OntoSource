@@ -1,2 +1,6 @@
 
 /.vscode
+
+services/.impeccable/
+webapp/.impeccable/*
+!webapp/.impeccable/design.json

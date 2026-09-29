@@ -1,0 +1,556 @@
+{
+  "schemaVersion": 2,
+  "generatedAt": "2026-09-29T11:40:42.249695+00:00",
+  "title": "Design System: OntoSource",
+  "extensions": {
+    "sourceTokens": {
+      "colors": {
+        "background": "#f3f5f8",
+        "foreground": "#24364b",
+        "dice-blue": "#3a78b8",
+        "primary": "#326ca7",
+        "primary-dark": "#24517e",
+        "primary-light": "#3a78b8",
+        "primary-surface": "#edf3fa",
+        "primary-border": "#aec5df",
+        "navigation": "#142e4a",
+        "navigation-active": "#d5e7fa",
+        "panel": "#ffffff",
+        "line": "#d8e0ea",
+        "muted": "#5b6c80",
+        "graph-class": "#3a78b8",
+        "graph-property": "#6c5fa8",
+        "graph-individual": "#93651f",
+        "graph-literal": "#a34965"
+      },
+      "typography": {
+        "headline": {
+          "fontFamily": "Geist, system-ui, sans-serif",
+          "fontSize": "28px",
+          "fontWeight": 600,
+          "lineHeight": 1.25,
+          "letterSpacing": "-0.035em"
+        },
+        "title": {
+          "fontFamily": "Geist, system-ui, sans-serif",
+          "fontSize": "16px",
+          "fontWeight": 600,
+          "lineHeight": "24px"
+        },
+        "body": {
+          "fontFamily": "Geist, system-ui, sans-serif",
+          "fontSize": "14px",
+          "lineHeight": "20px"
+        },
+        "label": {
+          "fontFamily": "Geist, system-ui, sans-serif",
+          "fontSize": "14px",
+          "fontWeight": 500,
+          "lineHeight": "20px"
+        },
+        "caption": {
+          "fontFamily": "Geist, system-ui, sans-serif",
+          "fontSize": "12px",
+          "lineHeight": "16px"
+        },
+        "identifier": {
+          "fontFamily": "Geist Mono, monospace",
+          "fontSize": "12px",
+          "lineHeight": "16px"
+        }
+      },
+      "rounded": {
+        "control": "6px",
+        "panel": "12px"
+      },
+      "spacing": {
+        "control-x": "12px",
+        "control-y": "8px",
+        "card-sm": "16px",
+        "card-md": "24px",
+        "card-lg": "32px",
+        "workflow-panel": "26px",
+        "layout-gap": "24px",
+        "workflow-gap": "28px"
+      },
+      "components": {
+        "button-primary": {
+          "backgroundColor": "{colors.primary}",
+          "textColor": "{colors.panel}",
+          "rounded": "{rounded.control}",
+          "padding": "8px 16px"
+        },
+        "button-primary-hover": {
+          "backgroundColor": "{colors.primary-dark}"
+        },
+        "surface-panel": {
+          "backgroundColor": "{colors.panel}",
+          "rounded": "{rounded.panel}",
+          "padding": "24px"
+        },
+        "navigation": {
+          "backgroundColor": "{colors.navigation}",
+          "width": "216px"
+        },
+        "navigation-active": {
+          "backgroundColor": "{colors.navigation-active}",
+          "height": "47px",
+          "padding": "12px 16px"
+        },
+        "input": {
+          "backgroundColor": "{colors.panel}",
+          "rounded": "{rounded.control}",
+          "padding": "8px 12px"
+        },
+        "tool-navigation": {
+          "textColor": "{colors.muted}",
+          "padding": "12px 16px"
+        },
+        "tool-navigation-selected": {
+          "textColor": "{colors.primary-dark}"
+        }
+      }
+    },
+    "recordPolicy": "User requested JSON only. Source tokens are included here because Markdown frontmatter was explicitly deferred. No Markdown file was created or modified.",
+    "sources": [
+      "src/app/globals.css",
+      "src/app/layout.tsx",
+      "src/app/components/Header.tsx",
+      "src/app/components/Logo.tsx",
+      "src/app/components/ui/PageHeader.tsx",
+      "src/app/components/ui/StepSection.tsx",
+      "src/app/components/ui/Button.tsx",
+      "src/app/components/ui/Card.tsx",
+      "src/app/components/ui/Badge.tsx",
+      "src/app/generate/page.tsx",
+      "src/app/utils/graph-utils.ts",
+      "../dice_logo.svg",
+      "src/app/components/ui/ToolNavigation.tsx",
+      "src/app/components/reasoning/ReasoningTools.tsx",
+      "src/app/components/reasoning/NeuralModels.tsx",
+      "src/app/components/DownloadOntology.tsx",
+      "src/app/edit/page.tsx",
+      "src/app/predict/page.tsx",
+      "public/examples/family.owl",
+      "src/app/components/ProviderConnection.tsx",
+      "src/app/lib/providers.ts",
+      "src/app/lib/model-catalog.ts",
+      "src/app/components/ComboBox.tsx",
+      "src/app/icon.svg"
+    ],
+    "colorMeta": {
+      "background": {
+        "canonical": "#f3f5f8",
+        "displayName": "Background",
+        "role": "neutral"
+      },
+      "foreground": {
+        "canonical": "#24364b",
+        "displayName": "Foreground",
+        "role": "neutral"
+      },
+      "dice-blue": {
+        "canonical": "#3a78b8",
+        "displayName": "Dice Blue",
+        "role": "primary"
+      },
+      "primary": {
+        "canonical": "#326ca7",
+        "displayName": "Primary",
+        "role": "primary"
+      },
+      "primary-dark": {
+        "canonical": "#24517e",
+        "displayName": "Primary Dark",
+        "role": "primary"
+      },
+      "primary-light": {
+        "canonical": "#3a78b8",
+        "displayName": "Primary Light",
+        "role": "primary"
+      },
+      "primary-surface": {
+        "canonical": "#edf3fa",
+        "displayName": "Primary Surface",
+        "role": "primary"
+      },
+      "primary-border": {
+        "canonical": "#aec5df",
+        "displayName": "Primary Border",
+        "role": "primary"
+      },
+      "navigation": {
+        "canonical": "#142e4a",
+        "displayName": "Navigation",
+        "role": "neutral"
+      },
+      "navigation-active": {
+        "canonical": "#d5e7fa",
+        "displayName": "Navigation Active",
+        "role": "neutral"
+      },
+      "panel": {
+        "canonical": "#ffffff",
+        "displayName": "Panel",
+        "role": "neutral"
+      },
+      "line": {
+        "canonical": "#d8e0ea",
+        "displayName": "Line",
+        "role": "neutral"
+      },
+      "muted": {
+        "canonical": "#5b6c80",
+        "displayName": "Muted",
+        "role": "neutral"
+      },
+      "graph-class": {
+        "canonical": "#3a78b8",
+        "displayName": "Graph Class",
+        "role": "semantic"
+      },
+      "graph-property": {
+        "canonical": "#6c5fa8",
+        "displayName": "Graph Property",
+        "role": "semantic"
+      },
+      "graph-individual": {
+        "canonical": "#93651f",
+        "displayName": "Graph Individual",
+        "role": "semantic"
+      },
+      "graph-literal": {
+        "canonical": "#a34965",
+        "displayName": "Graph Literal",
+        "role": "semantic"
+      }
+    },
+    "typographyMeta": {
+      "headline": {
+        "displayName": "Page headline",
+        "purpose": "Shared PageHeader across workspaces."
+      },
+      "identifier": {
+        "displayName": "Identifier",
+        "purpose": "Job IDs and ontology identifiers; numeric inputs use tabular figures."
+      }
+    },
+    "shadows": [
+      {
+        "name": "graph-controls",
+        "value": "0 3px 10px #142e4a14",
+        "purpose": "Small lift under interactive graph controls; main surfaces remain flat."
+      }
+    ],
+    "motion": [
+      {
+        "name": "control-transition",
+        "value": "180ms ease-out",
+        "purpose": "Navigation and button background and text state changes."
+      },
+      {
+        "name": "button-press",
+        "value": "translateY(1px)",
+        "purpose": "Active enabled buttons."
+      },
+      {
+        "name": "reduced-motion",
+        "value": ".01ms",
+        "purpose": "Reduce animation and transition duration when requested; animation iterations become one and smooth scrolling is disabled."
+      }
+    ],
+    "breakpoints": [
+      {
+        "name": "compact-desktop-max",
+        "value": "1199px"
+      },
+      {
+        "name": "top-navigation-max",
+        "value": "959px"
+      },
+      {
+        "name": "stacked-layout-max",
+        "value": "699px"
+      }
+    ],
+    "layout": {
+      "desktopAcceptanceWidths": [
+        1440,
+        1280
+      ],
+      "reviewScope": "Desktop only; responsive code exists but mobile acceptance was not requested.",
+      "railWidth": "216px",
+      "pagePadding": "44px 36px 32px",
+      "contentMaxWidth": "1280px",
+      "wideContentMaxWidth": "1600px",
+      "visualizationColumns": "256px minmax(0, 1fr)",
+      "visualizationGap": "24px",
+      "workflowColumns": "minmax(0, 1fr) 300px",
+      "editorColumns": "300px minmax(0, 1fr)",
+      "workflowAndEditorGap": "28px",
+      "graphCanvasHeight": "560px",
+      "workflowPanelPadding": "26px",
+      "pageHeadingBottomMargin": "32px",
+      "pageHeadingBottomPadding": "25px",
+      "dashboardColumns": "minmax(0, 1fr) minmax(280px, .8fr)",
+      "dashboardGap": "24px",
+      "toolPanelPadding": "24px",
+      "toolNavigationBottomMargin": "24px",
+      "toolButtonPadding": "12px 16px",
+      "toolNavigationGap": "4px",
+      "sectionBodyIndent": "0px"
+    },
+    "accessibility": [
+      "Skip to content link becomes visible on focus and targets the main landmark.",
+      "Global focus-visible outline is 2px primary with 3px offset; navigation uses pale blue.",
+      "Navigation announces the active route with aria-current=page.",
+      "Button loading sets aria-busy and disables repeat activation; disabled buttons use opacity .5.",
+      "Text fields retain associated labels; decorative navigation and brand icons are aria-hidden.",
+      "Reduced-motion rules suppress recurring animation and shorten transitions.",
+      "Graph type uses border patterns as well as semantic color.",
+      "ToolNavigation and editing operation controls announce their selected state with aria-pressed; these are tool switches rather than sequential progress indicators.",
+      "Reasoning results use aria-live=polite, inline errors use role=alert, and training messages use role=status.",
+      "ProviderConnection retains associated field labels and a status region for live catalog updates, empty states and discovery errors; model entry remains usable when discovery is unavailable."
+    ],
+    "validation": {
+      "status": "Backend 38 tests and frontend 18 tests passed. Production build passed. Desktop browser checks at 1440px and 1280px passed. Impeccable finish review disposition: ship after confirming reasoning tool continuity.",
+      "notCanonized": "Legacy step-related CSS remains in the source, but numbered progression is not rendered by StepSection and is not system guidance. Semantic success/error styling and graph relation colors are retained for their data roles; they are not additional brand accents.",
+      "tonalRamps": "No synthetic ramps recorded; source-truth colors only.",
+      "testEvidence": {
+        "backendTestsPassed": 38,
+        "frontendTestsPassed": 18,
+        "provenance": "Implementation agent test runs and desktop browser checks; finish reviewer confirmed the reported tool-continuity fix from source and capture."
+      },
+      "limitations": [
+        "Mobile acceptance deferred by the user.",
+        "External LLM discovery and generation use deterministic fixtures; paid provider calls were not run."
+      ]
+    },
+    "branding": {
+      "source": "../dice_logo.svg",
+      "sourceColor": "#3A78B8",
+      "component": "src/app/components/Logo.tsx",
+      "mark": "DICE cube paths reused as inline SVG with currentColor; no generated imagery.",
+      "viewBox": "20 20 660 720",
+      "size": "36px by 40px",
+      "railMarkColor": "#80b2e5",
+      "wordmark": "OntoSource",
+      "descriptor": "Ontology Manager",
+      "browserIcon": "src/app/icon.svg reuses the original DICE cube; the default favicon.ico was removed."
+    },
+    "fontAssets": {
+      "sans": "src/app/fonts/Geist-Variable.woff2",
+      "mono": "src/app/fonts/GeistMono-Variable.woff2",
+      "loader": "next/font/local",
+      "weight": "100 900",
+      "display": "swap"
+    },
+    "dashboardTools": {
+      "Edit": {
+        "navigation": "Compact wrapping editing-tool buttons and an Add/Remove operation switch.",
+        "pattern": "Selected ontology context, active axiom form and ontology save/download controls."
+      },
+      "Generate": {
+        "navigation": [
+          "Source text",
+          "Model connection",
+          "Ontology output",
+          "Extraction settings"
+        ],
+        "pattern": "Independent configuration panels with a separate status and result column.",
+        "providerConnection": {
+          "component": "ProviderConnection",
+          "presets": [
+            "OpenAI",
+            "Anthropic",
+            "Google Gemini",
+            "OpenRouter",
+            "Groq",
+            "Hugging Face",
+            "Mistral AI",
+            "Cerebras",
+            "GitHub Models",
+            "Together AI",
+            "Fireworks AI",
+            "DeepSeek",
+            "Ollama \u00b7 local",
+            "LM Studio \u00b7 local"
+          ],
+          "presetCount": 14,
+          "customOption": "Custom domain / gateway",
+          "controls": [
+            "Provider preset",
+            "API protocol",
+            "Editable API base URL",
+            "Optional password-masked API key",
+            "Searchable live model catalog with custom model IDs",
+            "Refresh models",
+            "Conditional zero token price filter"
+          ],
+          "protocols": [
+            "OpenAI compatible",
+            "Anthropic",
+            "Google Gemini",
+            "Ollama native"
+          ],
+          "layout": "Provider preset and protocol share a two-column row with a 16px gap. Connection groups use 20px spacing. The model catalog is separated by a mineral border and 20px top padding.",
+          "typography": "14px control labels and inputs; 12px secondary explanations and status; API base URL uses Geist Mono.",
+          "catalogBehavior": "Debounced 600ms reload on connection changes; refresh on window focus and every five minutes while visible; explicit manual refresh. Prior requests are cancelled when the connection changes.",
+          "customModelBehavior": "Custom model IDs remain available when model discovery fails or returns no entries.",
+          "pricingRule": "Show the zero token price filter only when explicit provider pricing reports zero input and output token prices and an absent or zero request price. Free-tier and account-credit offers are separate provider annotations linked to official terms, not inferred per-model pricing.",
+          "stateRules": [
+            "Show fetching state and catalog update time.",
+            "Reset model choice on credential or connection edits; reset credentials when endpoint or protocol changes.",
+            "Use a labeled password field with autocomplete disabled for the optional API key.",
+            "Expose discovery errors and empty catalog guidance through a status region."
+          ]
+        }
+      },
+      "Predict": {
+        "navigation": [
+          "Instances",
+          "Class hierarchy",
+          "Individual types",
+          "Consistency",
+          "Expressions",
+          "Neural models"
+        ],
+        "pattern": "Selected ontology context with a paired tool and results workspace.",
+        "components": {
+          "ReasoningTools": "Hierarchy, individual type, consistency and expression conversion forms with labeled controls and live results.",
+          "NeuralModels": "Train or upload a model; separate link prediction controls and confidence-ranked results."
+        },
+        "state": "Tool inputs and results remain mounted while switching tools; reasoning tool context resets when the active ontology changes."
+      },
+      "DownloadOntology": {
+        "formats": [
+          "OWL / RDF XML",
+          "Turtle",
+          "N-Triples"
+        ],
+        "pattern": "Labeled format select and full-width secondary button, with loading state."
+      },
+      "demoOntology": "public/examples/family.owl"
+    }
+  },
+  "components": [
+    {
+      "name": "Primary Button",
+      "kind": "button",
+      "refersTo": "button-primary",
+      "description": "Button variant from Button.tsx; default medium size, 40px minimum height. Loading disables the action and sets aria-busy.",
+      "html": "<button class=\"ds-button-primary\">Primary action</button>",
+      "css": ".ds-button-primary{font-family:var(--font-geist-sans, Geist),system-ui,sans-serif;display:inline-flex;align-items:center;justify-content:center;gap:8px;min-height:40px;padding:8px 16px;border:1px solid transparent;border-radius:var(--radius-control,6px);background:var(--primary, #326ca7);color:white;font-size:14px;font-weight:500;line-height:20px;cursor:pointer;transition:background-color 180ms ease-out,color 180ms ease-out}.ds-button-primary:hover{background:var(--primary-dark, #24517e)}.ds-button-primary:focus-visible{outline:2px solid var(--primary,#326ca7);outline-offset:2px}.ds-button-primary:active:not(:disabled){transform:translateY(1px)}.ds-button-primary:disabled{opacity:.5;pointer-events:none;cursor:not-allowed}@media(prefers-reduced-motion:reduce){.ds-button-primary{transition-duration:.01ms}}"
+    },
+    {
+      "name": "Secondary Button",
+      "kind": "button",
+      "description": "Button variant from Button.tsx; default medium size, 40px minimum height. Loading disables the action and sets aria-busy.",
+      "html": "<button class=\"ds-button-secondary\">Secondary action</button>",
+      "css": ".ds-button-secondary{font-family:var(--font-geist-sans, Geist),system-ui,sans-serif;display:inline-flex;align-items:center;justify-content:center;gap:8px;min-height:40px;padding:8px 16px;border:1px solid #bdcbdc;border-radius:var(--radius-control,6px);background:white;color:#374f69;font-size:14px;font-weight:500;line-height:20px;cursor:pointer;transition:background-color 180ms ease-out,color 180ms ease-out}.ds-button-secondary:hover{background:#f3f5f8}.ds-button-secondary:focus-visible{outline:2px solid var(--primary,#326ca7);outline-offset:2px}.ds-button-secondary:active:not(:disabled){transform:translateY(1px)}.ds-button-secondary:disabled{opacity:.5;pointer-events:none;cursor:not-allowed}@media(prefers-reduced-motion:reduce){.ds-button-secondary{transition-duration:.01ms}}"
+    },
+    {
+      "name": "Ghost Button",
+      "kind": "button",
+      "description": "Button variant from Button.tsx; default medium size, 40px minimum height. Loading disables the action and sets aria-busy.",
+      "html": "<button class=\"ds-button-ghost\">Ghost action</button>",
+      "css": ".ds-button-ghost{font-family:var(--font-geist-sans, Geist),system-ui,sans-serif;display:inline-flex;align-items:center;justify-content:center;gap:8px;min-height:40px;padding:8px 16px;border:1px solid transparent;border-radius:var(--radius-control,6px);background:transparent;color:#4c627b;font-size:14px;font-weight:500;line-height:20px;cursor:pointer;transition:background-color 180ms ease-out,color 180ms ease-out}.ds-button-ghost:hover{background:#eaf0f6}.ds-button-ghost:focus-visible{outline:2px solid var(--primary,#326ca7);outline-offset:2px}.ds-button-ghost:active:not(:disabled){transform:translateY(1px)}.ds-button-ghost:disabled{opacity:.5;pointer-events:none;cursor:not-allowed}@media(prefers-reduced-motion:reduce){.ds-button-ghost{transition-duration:.01ms}}"
+    },
+    {
+      "name": "Danger Button",
+      "kind": "button",
+      "description": "Button variant from Button.tsx; default medium size, 40px minimum height. Loading disables the action and sets aria-busy.",
+      "html": "<button class=\"ds-button-danger\">Danger action</button>",
+      "css": ".ds-button-danger{font-family:var(--font-geist-sans, Geist),system-ui,sans-serif;display:inline-flex;align-items:center;justify-content:center;gap:8px;min-height:40px;padding:8px 16px;border:1px solid transparent;border-radius:var(--radius-control,6px);background:oklch(57.7% 0.245 27.325);color:white;font-size:14px;font-weight:500;line-height:20px;cursor:pointer;transition:background-color 180ms ease-out,color 180ms ease-out}.ds-button-danger:hover{background:oklch(50.5% 0.213 27.518)}.ds-button-danger:focus-visible{outline:2px solid var(--primary,#326ca7);outline-offset:2px}.ds-button-danger:active:not(:disabled){transform:translateY(1px)}.ds-button-danger:disabled{opacity:.5;pointer-events:none;cursor:not-allowed}@media(prefers-reduced-motion:reduce){.ds-button-danger{transition-duration:.01ms}}"
+    },
+    {
+      "name": "Success Button",
+      "kind": "button",
+      "description": "Button variant from Button.tsx; default medium size, 40px minimum height. Loading disables the action and sets aria-busy.",
+      "html": "<button class=\"ds-button-success\">Success action</button>",
+      "css": ".ds-button-success{font-family:var(--font-geist-sans, Geist),system-ui,sans-serif;display:inline-flex;align-items:center;justify-content:center;gap:8px;min-height:40px;padding:8px 16px;border:1px solid transparent;border-radius:var(--radius-control,6px);background:oklch(59.6% 0.145 163.225);color:white;font-size:14px;font-weight:500;line-height:20px;cursor:pointer;transition:background-color 180ms ease-out,color 180ms ease-out}.ds-button-success:hover{background:oklch(50.8% 0.118 165.612)}.ds-button-success:focus-visible{outline:2px solid var(--primary,#326ca7);outline-offset:2px}.ds-button-success:active:not(:disabled){transform:translateY(1px)}.ds-button-success:disabled{opacity:.5;pointer-events:none;cursor:not-allowed}@media(prefers-reduced-motion:reduce){.ds-button-success{transition-duration:.01ms}}"
+    },
+    {
+      "name": "Labeled Input",
+      "kind": "input",
+      "refersTo": "input",
+      "description": "Associated label, 42px minimum input height; blue focus border and visible outline.",
+      "html": "<label class=\"ds-label\" for=\"ds-namespace\">Ontology namespace</label><input class=\"ds-input\" id=\"ds-namespace\" placeholder=\"http://example.com/ontology#\">",
+      "css": ".ds-label{font-family:var(--font-geist-sans, Geist),system-ui,sans-serif;display:block;margin-bottom:6px;font-size:14px;line-height:20px;font-weight:500;color:#374f69}.ds-input{font-family:var(--font-geist-sans, Geist),system-ui,sans-serif;width:100%;min-height:42px;padding:8px 12px;border:1px solid #bdcbdc;border-radius:var(--radius-control,6px);background:white;color:var(--foreground,#24364b);font-size:14px;line-height:20px;transition:color .15s,background-color .15s,border-color .15s}.ds-input::placeholder{color:var(--muted,#5b6c80);opacity:1}.ds-input:focus{border-color:var(--primary,#326ca7);box-shadow:0 0 0 2px #326ca733}.ds-input:focus-visible{outline:2px solid var(--primary,#326ca7);outline-offset:3px}"
+    },
+    {
+      "name": "Navigation Rail",
+      "kind": "nav",
+      "refersTo": "navigation",
+      "description": "Persistent desktop rail. Active destination has aria-current=page, pale blue fill and dark text.",
+      "html": "<nav class=\"ds-nav\" aria-label=\"Main navigation\"><a class=\"ds-link\" href=\"/\" aria-current=\"page\">Visualize</a><a class=\"ds-link\" href=\"/edit\">Edit</a><a class=\"ds-link\" href=\"/generate\">Generate</a><a class=\"ds-link\" href=\"/predict\">Predict</a></nav>",
+      "css": ".ds-nav{font-family:var(--font-geist-sans, Geist),system-ui,sans-serif;width:184px;padding:16px;background:var(--navigation,#142e4a);display:grid;gap:7px}.ds-link{display:flex;align-items:center;min-height:47px;padding:12px 16px;border-radius:6px;color:#c0d1e4;font-size:14px;font-weight:500;text-decoration:none;transition:background-color 180ms ease-out,color 180ms ease-out}.ds-link:hover{background:#254765;color:white}.ds-link[aria-current=\"page\"]{background:var(--navigation-active,#d5e7fa);color:#183c61}.ds-link:focus-visible{outline:2px solid var(--navigation-active,#d5e7fa);outline-offset:3px}"
+    },
+    {
+      "name": "Surface Panel",
+      "kind": "card",
+      "refersTo": "surface-panel",
+      "description": "White, bordered work surface with no resting shadow; Card padding sizes are 16, 24 and 32px.",
+      "html": "<div class=\"ds-panel\">Ontology workspace</div>",
+      "css": ".ds-panel{font-family:var(--font-geist-sans, Geist),system-ui,sans-serif;padding:24px;background:var(--panel,#fff);border:1px solid var(--line,#d8e0ea);border-radius:var(--radius-panel,12px);color:var(--foreground,#24364b);font-size:14px;line-height:20px}"
+    },
+    {
+      "name": "Primary Badge",
+      "kind": "chip",
+      "description": "Compact status marker; primary, success, warning, error, neutral and info variants retain text labels.",
+      "html": "<span class=\"ds-badge\">Selected</span>",
+      "css": ".ds-badge{font-family:var(--font-geist-sans, Geist),system-ui,sans-serif;display:inline-flex;align-items:center;gap:6px;padding:4px 10px;border:1px solid var(--primary-border,#aec5df);border-radius:8px;background:var(--primary-surface,#edf3fa);color:var(--primary-dark,#24517e);font-size:12px;font-weight:500;line-height:16px}"
+    },
+    {
+      "name": "Dashboard Tool Navigation",
+      "kind": "nav",
+      "refersTo": "tool-navigation",
+      "description": "Independent labeled tool buttons; selected state uses aria-pressed, blue text and an underline.",
+      "html": "<nav class=\"ds-tools\" aria-label=\"Generation tools\"><button type=\"button\" aria-pressed=\"true\">Source text</button><button type=\"button\" aria-pressed=\"false\">Model connection</button><button type=\"button\" aria-pressed=\"false\">Ontology output</button><button type=\"button\" aria-pressed=\"false\">Extraction settings</button></nav>",
+      "css": ".ds-tools{display:flex;gap:4px;flex-wrap:wrap;border-bottom:1px solid var(--line,#d8e0ea);margin-bottom:24px}.ds-tools button{font-family:var(--font-geist-sans,Geist),system-ui,sans-serif;padding:12px 16px;font-size:14px;line-height:20px;color:var(--muted,#5b6c80);border:0;border-bottom:2px solid transparent;background:transparent;cursor:pointer}.ds-tools button[aria-pressed=\"true\"]{color:var(--primary-dark,#24517e);border-color:var(--primary,#326ca7);font-weight:600}.ds-tools button:hover{background:var(--primary-surface,#edf3fa)}.ds-tools button:focus-visible{outline:2px solid var(--primary,#326ca7);outline-offset:3px}"
+    }
+  ],
+  "narrative": {
+    "northStar": "DICE scientific workbench",
+    "overview": "OntoSource supports ontology engineering for researchers through persistent navigation and compact, legible work areas. The DICE cube and its blue identity anchor navy navigation, pale blue selection, cool mineral backgrounds and white working surfaces. Edit, Generate and Predict expose independent dashboard tools, with ontology context and results visible beside the active working area.",
+    "keyCharacteristics": [
+      "DICE cube branding and blue identity",
+      "Persistent research workbench navigation",
+      "Compact ontology sidebar and expanded runtime graph",
+      "Independent dashboard tools without numbered progression",
+      "Paired tool configuration and results",
+      "Locally hosted Geist interface text and Geist Mono identifiers"
+    ],
+    "rules": [
+      {
+        "name": "DICE Blue",
+        "body": "Derive the interface palette from the DICE logo blue. Use action blue for primary controls, navy for the persistent rail and pale blue for its selected destination; graph colors continue to encode ontology semantics.",
+        "section": "colors"
+      },
+      {
+        "name": "Working Hierarchy",
+        "body": "Use the shared page heading, 16px tool section titles and compact 14px body text; reserve mono for technical identifiers, expressions and generated syntax.",
+        "section": "typography"
+      },
+      {
+        "name": "Flat Work Surfaces",
+        "body": "Separate panels with white surfaces and mineral borders; graph controls carry the small elevation shadow.",
+        "section": "elevation"
+      }
+    ],
+    "dos": [
+      "Do reuse the DICE cube geometry from Logo and the root logo asset.",
+      "Do reuse PageHeader, unnumbered StepSection, ToolNavigation, Button, Card and Badge for consistent hierarchy and states.",
+      "Do present Edit, Generate and Predict as independently selectable dashboard tools with selected ontology context.",
+      "Do preserve labeled controls, visible focus, loading states and live results.",
+      "Do retain the runtime graph, semantic node border patterns and the Family ontology demo.",
+      "Do keep provider offer terms separate from explicit model pricing, and retain custom endpoint and model ID entry when live discovery is unavailable."
+    ],
+    "donts": [
+      "Do not reintroduce numbered progression to the dashboard tools.",
+      "Do not replace the DICE cube with a generic network icon or generated brand image.",
+      "Do not replace ontology data with decorative image assets.",
+      "Do not treat desktop source inspection as mobile acceptance or final verification."
+    ]
+  }
+}
