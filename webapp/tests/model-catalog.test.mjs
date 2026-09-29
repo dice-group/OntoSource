@@ -104,9 +104,3 @@ test("authentication errors take priority over non-JSON error bodies", async (t)
   t.mock.method(globalThis, "fetch", async () => new Response("Unauthorized", { status: 401 }));
   await assert.rejects(fetchModelCatalog("https://provider.example/v1", "", "openai"), /credentials/);
 });
-
-test("retired GitHub Models endpoints explain the retirement without making a request", async (t) => {
-  const mock = t.mock.method(globalThis, "fetch", async () => { throw new Error("must not fetch"); });
-  await assert.rejects(fetchModelCatalog("https://models.github.ai/inference", "key", "openai"), /GitHub Models was retired.*Choose another provider/);
-  assert.equal(mock.mock.callCount(), 0);
-});

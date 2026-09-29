@@ -35,10 +35,6 @@ export async function fetchModelCatalog(
   signal?: AbortSignal,
 ) {
   const url = new URL(base);
-  if (url.hostname === "models.github.ai")
-    throw new Error(
-      "GitHub Models was retired on July 30, 2026. Choose another provider or a compatible gateway.",
-    );
   if (
     !["http:", "https:"].includes(url.protocol) ||
     url.username ||
