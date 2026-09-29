@@ -313,18 +313,26 @@
       "ProviderConnection retains associated field labels and a status region for live catalog updates, empty states and discovery errors; model entry remains usable when discovery is unavailable."
     ],
     "validation": {
-      "status": "Backend 38 tests and frontend 21 tests passed. Production build passed. Desktop browser checks at 1440px and 1280px passed. Impeccable finish review disposition: ship after confirming reasoning tool continuity.",
+      "status": "48 backend tests and 27 frontend tests passed. Production build passed. Both browser scenarios passed against production and Next.js Turbopack development mode, including worker cancellation, visual triple editing, drawn connections, keyboard selection, literal values, exports and result graphs. Desktop widths 1440px and 1280px checked.",
       "notCanonized": "Legacy step-related CSS remains in the source, but numbered progression is not rendered by StepSection and is not system guidance. Semantic success/error styling and graph relation colors are retained for their data roles; they are not additional brand accents.",
       "tonalRamps": "No synthetic ramps recorded; source-truth colors only.",
       "testEvidence": {
-        "backendTestsPassed": 38,
-        "frontendTestsPassed": 21,
-        "provenance": "Implementation agent test runs and desktop browser checks; finish reviewer confirmed the reported tool-continuity fix from source and capture."
+        "backendTestsPassed": 48,
+        "frontendTestsPassed": 27,
+        "provenance": "Implementation test runs and desktop browser checks for the current graph work. The previous finish review covered the dashboard design and tool continuity.",
+        "browserScenariosPassed": 2,
+        "performanceRecord": "performance/graph-benchmark.json",
+        "developmentNote": "The first cold-start run timed out waiting for a mocked ontology list; that scenario passed when rerun after compilation. The live editing scenario passed on its first development run."
       },
       "limitations": [
         "Mobile acceptance deferred by the user.",
         "External LLM discovery and generation use deterministic fixtures; paid provider calls were not run."
-      ]
+      ],
+      "testCommands": {
+        "unit": "npm test",
+        "browser": "ONTOSOURCE_URL=http://127.0.0.1:3000 npm run test:browser (requires the running app and backend; install Chromium with npx playwright install chromium)",
+        "benchmark": "ONTOSOURCE_URL=http://127.0.0.1:3000 npm run benchmark:graph (uses synthetic graph responses)"
+      }
     },
     "branding": {
       "source": "../dice_logo.svg",
@@ -432,6 +440,26 @@
         "pattern": "Labeled format select and full-width secondary button, with loading state."
       },
       "demoOntology": "public/examples/family.owl"
+    },
+    "graphWorkbench": {
+      "renderer": "React Flow with memoized nodes and edges, fixed directional handles, and viewport culling for more than 300 elements.",
+      "layout": "@dagrejs/dagre in a dedicated Web Worker. Index data once per ontology payload, debounce requests by 120ms, terminate obsolete work, and ignore stale responses. Keep the current view during updates to the same ontology.",
+      "labels": "Hide edge labels below zoom 0.6; reveal on hover or selection. Always show edge labels overrides this behavior.",
+      "editing": {
+        "entry": "Edit graph toggle in the graph toolbar",
+        "layout": "320px editor beside the graph; graph refits when edit mode changes.",
+        "actions": [
+          "Select a node to browse its connected triples.",
+          "Select an edge with pointer or keyboard to edit its exact triple.",
+          "Drag between node handles to prefill a new connection.",
+          "Add, replace, and remove resource or literal triples.",
+          "Keep language tags and datatype IRIs; existing blank nodes retain their identifiers.",
+          "Confirm removal of the selected triple."
+        ],
+        "persistence": "Mutations update the live ontology, invalidate graph/entity/summary/reasoning queries, and are reflected in downloads. Replacing a missing triple returns a conflict; invalid replacements preserve the original."
+      },
+      "resultViews": "List/Graph views for class hierarchy, individual types, instance queries using class IRIs, and neural link predictions. Graph previews show up to 100 relationships; lists retain all results. Prediction edge labels include model scores.",
+      "largeDataLimit": "The browser still downloads the complete triple payload for classification and the full legend. Very large displayed graphs can take time to lay out in the worker; filters and the triple limit remain available while work runs."
     }
   },
   "components": [

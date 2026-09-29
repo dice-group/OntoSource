@@ -1,0 +1,82 @@
+{
+  "date": "2026-09-29",
+  "fixture": "tests/fixtures/large-graph.mjs",
+  "totalTriples": 4664,
+  "viewport": {
+    "width": 1440,
+    "height": 1000
+  },
+  "browser": "Playwright Chromium 1.63.0, headless",
+  "mode": "Next.js production build, synthetic API responses, no CPU throttling",
+  "interpretation": "Single local before/after runs. Measures main-thread responsiveness, not total layout duration or a universal performance guarantee. Large layouts still compute in the worker.",
+  "baselineCommit": "2caf5df",
+  "before": [
+    {
+      "label": "initial 500",
+      "maxLongTaskMs": 927,
+      "blockingMs": 1006,
+      "domNodes": 3426,
+      "renderedNodes": 217,
+      "renderedEdges": 500
+    },
+    {
+      "label": "increase to 1500",
+      "maxLongTaskMs": 2040,
+      "blockingMs": 2279,
+      "domNodes": 9710,
+      "renderedNodes": 645,
+      "renderedEdges": 1500
+    },
+    {
+      "label": "change direction",
+      "maxLongTaskMs": 2040,
+      "blockingMs": 2212,
+      "domNodes": 9710,
+      "renderedNodes": 645,
+      "renderedEdges": 1500
+    },
+    {
+      "label": "pan",
+      "maxLongTaskMs": 73,
+      "blockingMs": 23,
+      "domNodes": 9710,
+      "renderedNodes": 645,
+      "renderedEdges": 1500
+    }
+  ],
+  "after": [
+    {
+      "label": "initial 500",
+      "maxLongTaskMs": 188,
+      "blockingMs": 166,
+      "domNodes": 4366,
+      "renderedNodes": 217,
+      "renderedEdges": 500
+    },
+    {
+      "label": "increase to 1500",
+      "maxLongTaskMs": 154,
+      "blockingMs": 172,
+      "domNodes": 4884,
+      "renderedNodes": 239,
+      "renderedEdges": 568
+    },
+    {
+      "label": "change direction",
+      "maxLongTaskMs": 109,
+      "blockingMs": 76,
+      "domNodes": 3683,
+      "renderedNodes": 174,
+      "renderedEdges": 422
+    },
+    {
+      "label": "pan",
+      "maxLongTaskMs": 0,
+      "blockingMs": 0,
+      "domNodes": 3022,
+      "renderedNodes": 139,
+      "renderedEdges": 341
+    }
+  ],
+  "reproduce": "Start a production build, then run ONTOSOURCE_URL=http://127.0.0.1:3000 npm run benchmark:graph. Output defaults to /tmp/ontosource-graph-benchmark.json; override with GRAPH_BENCHMARK_OUTPUT."
+}
