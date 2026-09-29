@@ -1,5 +1,5 @@
-import { Node, Edge } from "@xyflow/react";
-import dagre from "dagre";
+import type { Triple } from "../store/ontology-store";
+import type { Edge } from "@xyflow/react";
 
 export type NodeType = "class" | "property" | "individual" | "literal";
 export type BoxType = "tbox" | "abox" | "literal";
@@ -8,7 +8,7 @@ export function getNodeType(uri: string): NodeType {
   const lower = uri.toLowerCase();
 
   // Check for literal values (non-URIs)
-  if (!uri.startsWith("http") && !uri.startsWith("_:")) return "literal";
+  if (!/^[a-z][a-z0-9+.-]*:/i.test(uri) && !uri.startsWith("_:")) return "literal";
 
   // Check for blank nodes
   if (uri.startsWith("_:")) return "individual";
@@ -182,94 +182,4 @@ export function shortenUri(uri: string): string {
   return uri.split(/[\/#]/).filter(Boolean).pop() || uri;
 }
 
-// Helper function to create unique edge path identifiers
-function getEdgePathKey(source: string, target: string): string {
-  return `${source}__${target}`;
-}
-
-// Layout configuration
-export type GraphEdge = Edge<{ predicate: string; isBidirectional: boolean; offset?: number }>;
-
-export const getLayoutedElements = (
-  nodes: Node[],
-  edges: GraphEdge[],
-  direction = "TB",
-) => {
-  const dagreGraph = new dagre.graphlib.Graph();
-  dagreGraph.setDefaultEdgeLabel(() => ({}));
-
-  const nodeWidth = 250;
-  const nodeHeight = 50;
-
-  dagreGraph.setGraph({
-    rankdir: direction,
-    ranksep: 150,
-    nodesep: 100,
-    edgesep: 50,
-  });
-
-  nodes.forEach((node) => {
-    dagreGraph.setNode(node.id, { width: nodeWidth, height: nodeHeight });
-  });
-
-  edges.forEach((edge) => {
-    dagreGraph.setEdge(edge.source, edge.target);
-  });
-
-  dagre.layout(dagreGraph);
-
-  const layoutedNodes = nodes.map((node) => {
-    const nodeWithPosition = dagreGraph.node(node.id);
-    return {
-      ...node,
-      position: {
-        x: nodeWithPosition.x - nodeWidth / 2,
-        y: nodeWithPosition.y - nodeHeight / 2,
-      },
-    };
-  });
-
-  // Group edges by their source-target pairs to detect parallel edges
-  const edgeGroups = new Map<string, GraphEdge[]>();
-  edges.forEach((edge) => {
-    const pathKey = getEdgePathKey(edge.source, edge.target);
-    if (!edgeGroups.has(pathKey)) {
-      edgeGroups.set(pathKey, []);
-    }
-    edgeGroups.get(pathKey)!.push(edge);
-  });
-
-  // Calculate curve offsets for parallel edges
-  const layoutedEdges = edges.map((edge) => {
-    const pathKey = getEdgePathKey(edge.source, edge.target);
-    const parallelEdges = edgeGroups.get(pathKey) || [];
-
-    // If there's only one edge between these nodes, no offset needed
-    if (parallelEdges.length === 1) {
-      return {
-        ...edge,
-        data: {
-          ...edge.data,
-          offset: 0,
-        },
-      };
-    }
-
-    // For multiple edges between same nodes, calculate offset
-    const edgeIndex = parallelEdges.indexOf(edge);
-    const totalEdges = parallelEdges.length;
-
-    // Calculate offset: center the group of edges around 0
-    const offset = (edgeIndex - (totalEdges - 1) / 2) * 50;
-
-    return {
-      ...edge,
-      data: {
-        ...edge.data,
-        offset,
-      },
-    };
-  });
-
-  return { nodes: layoutedNodes, edges: layoutedEdges };
-};
+export type GraphEdge = Edge<{ predicate: string; isBidirectional: boolean; offset?: number; triples?: Triple[] }>;

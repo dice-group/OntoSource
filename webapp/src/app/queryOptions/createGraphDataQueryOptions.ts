@@ -4,14 +4,15 @@ import { queryOptions } from "@tanstack/react-query";
 export default function createGraphDataQueryOptions(id: string) {
   return queryOptions({
     queryKey: ["graph-data", id],
-    queryFn: () => getGraphData(id),
+    queryFn: ({ signal }) => getGraphData(id, signal),
     staleTime: 60 * 1000, // 1 minute
-    refetchOnMount: "always", // Refetch when component mounts
+    refetchOnMount: true,
+    structuralSharing: false,
   });
 }
 
-const getGraphData = async (id: string): Promise<GraphDataResponse> => {
-  const response = await fetch(`/api/ontology/${id}/triples`);
+const getGraphData = async (id: string, signal?: AbortSignal): Promise<GraphDataResponse> => {
+  const response = await fetch(`/api/ontology/${id}/triples`, { signal });
   if (!response.ok) throw new Error("Failed to fetch graph data");
   return response.json();
 };

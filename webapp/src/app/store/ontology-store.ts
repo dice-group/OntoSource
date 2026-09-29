@@ -8,8 +8,8 @@ export interface Triple {
     | {
         type: "literal";
         value: string;
-        datatype?: string;
-        lang?: string;
+        datatype?: string | null;
+        lang?: string | null;
       };
 }
 

@@ -1,5 +1,6 @@
 "use client";
 
+import { memo, createContext, useContext, useState } from "react";
 import {
   BaseEdge,
   EdgeLabelRenderer,
@@ -7,7 +8,9 @@ import {
   getBezierPath,
 } from "@xyflow/react";
 
-export default function CustomEdge({
+export const EdgeLabelVisibility = createContext(true);
+
+export default memo(function CustomEdge({
   id,
   sourceX,
   sourceY,
@@ -21,7 +24,10 @@ export default function CustomEdge({
   label,
   labelStyle,
   data,
+  selected,
 }: EdgeProps) {
+  const labelsVisible = useContext(EdgeLabelVisibility);
+  const [hovered, setHovered] = useState(false);
   const offset: number = (data?.offset as number) || 0;
 
   // Calculate control points for curved edges with offset
@@ -69,9 +75,19 @@ export default function CustomEdge({
   }
 
   return (
-    <>
-      <BaseEdge id={id} path={edgePath} markerEnd={markerEnd} markerStart={markerStart} style={style} />
-      {label && (
+    <g
+      onMouseEnter={() => setHovered(true)}
+      onMouseLeave={() => setHovered(false)}
+    >
+      <title>{typeof label === "string" ? label : undefined}</title>
+      <BaseEdge
+        id={id}
+        path={edgePath}
+        markerEnd={markerEnd}
+        markerStart={markerStart}
+        style={style}
+      />
+      {label && (labelsVisible || hovered || selected) && (
         <EdgeLabelRenderer>
           <div
             style={{
@@ -87,6 +103,6 @@ export default function CustomEdge({
           </div>
         </EdgeLabelRenderer>
       )}
-    </>
+    </g>
   );
-}
+});

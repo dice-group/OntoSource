@@ -1,15 +1,15 @@
 "use client";
-import { useState } from "react";
+import { useMemo, useState } from "react";
 import { useMutation, useQuery } from "@tanstack/react-query";
 import createOntologyEntitiesQueryOptions from "../../queryOptions/createOntologyEntitiesQueryOptions";
 import { api } from "../../lib/api";
 import Button from "../ui/Button";
+import ResultGraph from "../viszualisation/ResultGraph";
+import type { Triple } from "../../store/ontology-store";
+import type { NodeType } from "../../utils/graph-utils";
 
 export type ReasoningTool =
-  | "hierarchy"
-  | "types"
-  | "consistency"
-  | "expression";
+  "hierarchy" | "types" | "consistency" | "expression";
 const control = "w-full border border-slate-300 bg-white px-3 py-2 text-sm";
 type Result = {
   super_classes?: { name: string; iri: string | null }[];
@@ -66,6 +66,36 @@ export default function ReasoningTools({
     mutation.data?.super_classes ||
     mutation.data?.sub_classes ||
     mutation.data?.types;
+  const resultTriples = useMemo<Triple[]>(
+    () =>
+      (rows || [])
+        .filter((row) => row.iri)
+        .map((row) => ({
+          s:
+            tool === "hierarchy" && direction === "sub-classes"
+              ? row.iri!
+              : entity,
+          p:
+            tool === "types"
+              ? "http://www.w3.org/1999/02/22-rdf-syntax-ns#type"
+              : "http://www.w3.org/2000/01/rdf-schema#subClassOf",
+          o:
+            tool === "hierarchy" && direction === "sub-classes"
+              ? entity
+              : row.iri!,
+        })),
+    [rows, tool, direction, entity],
+  );
+  const nodeTypes = useMemo<Record<string, NodeType>>(
+    () =>
+      Object.fromEntries([
+        [entity, tool === "types" ? "individual" : "class"],
+        ...(rows || [])
+          .filter((row) => row.iri)
+          .map((row) => [row.iri!, "class"]),
+      ]),
+    [entity, rows, tool],
+  );
   return (
     <div className="dashboard-workspace">
       <section className="surface-panel tool-panel space-y-4">
@@ -228,16 +258,18 @@ export default function ReasoningTools({
           <>
             {rows &&
               (rows.length ? (
-                <div className="divide-y divide-slate-200 max-h-[520px] overflow-auto">
-                  {rows.map((row, i) => (
-                    <div key={row.iri || i} className="py-3">
-                      <p className="text-sm font-medium">{row.name}</p>
-                      <p className="text-xs font-mono text-slate-500 break-all">
-                        {row.iri}
-                      </p>
-                    </div>
-                  ))}
-                </div>
+                <ResultGraph triples={resultTriples} nodeTypes={nodeTypes}>
+                  <div className="divide-y divide-slate-200 max-h-[520px] overflow-auto">
+                    {rows.map((row, i) => (
+                      <div key={row.iri || i} className="py-3">
+                        <p className="text-sm font-medium">{row.name}</p>
+                        <p className="text-xs font-mono text-slate-500 break-all">
+                          {row.iri}
+                        </p>
+                      </div>
+                    ))}
+                  </div>
+                </ResultGraph>
               ) : (
                 <p className="text-sm text-slate-500">
                   No matching relationships found.

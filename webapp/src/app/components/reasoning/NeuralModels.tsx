@@ -1,5 +1,5 @@
 "use client";
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
 import { api } from "../../lib/api";
@@ -7,6 +7,8 @@ import { createNeuralOntologyListQueryOptions } from "../../queryOptions/createN
 import { createNeuralJobStatusQueryOptions } from "../../queryOptions/createNeuralJobStatusQueryOptions";
 import createOntologyEntitiesQueryOptions from "../../queryOptions/createOntologyEntitiesQueryOptions";
 import Button from "../ui/Button";
+import ResultGraph from "../viszualisation/ResultGraph";
+import type { Triple } from "../../store/ontology-store";
 const control = "w-full border border-slate-300 px-3 py-2 text-sm bg-white";
 
 export default function NeuralModels({ ontologyId }: { ontologyId: string }) {
@@ -90,6 +92,19 @@ export default function NeuralModels({ ontologyId }: { ontologyId: string }) {
         },
       ),
   });
+  const resultTriples = useMemo<Triple[]>(
+    () =>
+      (predict.data?.predictions || []).map((item) => ({
+        s: target === "head" ? item.iri : head,
+        p: target === "relation" ? item.iri : relation,
+        o: target === "tail" ? item.iri : tail,
+      })),
+    [predict.data, target, head, relation, tail],
+  );
+  const scores = useMemo(
+    () => predict.data?.predictions.map((item) => item.score),
+    [predict.data],
+  );
   const error = train.error || upload.error || remove.error;
   const items =
     models?.neural_ontologies.filter(
@@ -337,20 +352,29 @@ export default function NeuralModels({ ontologyId }: { ontologyId: string }) {
           </p>
         )}
         {predict.data && (
-          <div aria-live="polite" className="divide-y divide-slate-200">
-            {predict.data.predictions.length ? (
-              predict.data.predictions.map((item) => (
-                <div
-                  key={item.iri}
-                  className="py-3 flex gap-4 justify-between text-xs"
-                >
-                  <span className="font-mono break-all">{item.iri}</span>
-                  <span>{item.score.toFixed(3)}</span>
-                </div>
-              ))
-            ) : (
-              <p className="text-sm text-slate-500">No predictions found.</p>
-            )}
+          <div>
+            <p className="text-xs text-slate-500">
+              Predicted links with model scores.
+            </p>
+            <ResultGraph triples={resultTriples} scores={scores}>
+              <div aria-live="polite" className="divide-y divide-slate-200">
+                {predict.data.predictions.length ? (
+                  predict.data.predictions.map((item) => (
+                    <div
+                      key={item.iri}
+                      className="py-3 flex gap-4 justify-between text-xs"
+                    >
+                      <span className="font-mono break-all">{item.iri}</span>
+                      <span>{item.score.toFixed(3)}</span>
+                    </div>
+                  ))
+                ) : (
+                  <p className="text-sm text-slate-500">
+                    No predictions found.
+                  </p>
+                )}
+              </div>
+            </ResultGraph>
           </div>
         )}
       </section>

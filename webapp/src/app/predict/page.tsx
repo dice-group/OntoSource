@@ -4,7 +4,9 @@ import ToolNavigation from "../components/ui/ToolNavigation";
 import ReasoningTools, { type ReasoningTool } from "../components/reasoning/ReasoningTools";
 import NeuralModels from "../components/reasoning/NeuralModels";
 import PageHeader from "../components/ui/PageHeader";
-import { useState } from "react";
+import { useMemo, useState } from "react";
+import ResultGraph from "../components/viszualisation/ResultGraph";
+import type { Triple } from "../store/ontology-store";
 import { useQuery } from "@tanstack/react-query";
 import createSummaryAllQueryOptions from "@/app/queryOptions/createSummaryAllQueryOptions";
 import createOntologyEntitiesQueryOptions from "@/app/queryOptions/createOntologyEntitiesQueryOptions";
@@ -72,6 +74,11 @@ export default function PredictPage() {
   const results = reasonerType === "neural" ? neuralResults : reasonerType === "sync" ? syncResults : structuralResults;
   const isLoading = reasonerType === "neural" ? neuralLoading : reasonerType === "sync" ? syncLoading : structuralLoading;
   const error = reasonerType === "neural" ? neuralError : reasonerType === "sync" ? syncError : structuralError;
+
+  const resultTriples = useMemo<Triple[]>(() => !useCustomExpression || expressionSyntax === "iri"
+    ? (results?.individuals || []).map(individual => ({ s: individual.iri, p: "http://www.w3.org/1999/02/22-rdf-syntax-ns#type", o: activeExpression }))
+    : [], [results, activeExpression, useCustomExpression, expressionSyntax]);
+  const resultNodeTypes = useMemo(() => ({ [activeExpression]: "class" as const }), [activeExpression]);
 
   return (
     <div className="workspace-page">
@@ -396,6 +403,7 @@ export default function PredictPage() {
                     {results.individuals.length === 0 ? (
                       <div className="text-center py-6 text-slate-500 text-sm">No instances found</div>
                     ) : (
+                      <ResultGraph triples={resultTriples} nodeTypes={resultNodeTypes}>
                       <div className="divide-y divide-slate-200 max-h-96 overflow-y-auto">
                         {results.individuals.map((ind) => (
                           <div key={ind.iri} className="py-3 first:pt-0 last:pb-0">
@@ -404,6 +412,7 @@ export default function PredictPage() {
                           </div>
                         ))}
                       </div>
+                      </ResultGraph>
                     )}
                   </div>
                 ) : null}
